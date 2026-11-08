@@ -36,37 +36,34 @@
 <!-- Application -->
 <div id="app" hidden>
   <header class="barre">
-    <span class="marque"><img src="icons/icon-192.png" alt="" width="28" height="28">PokeVibes</span>
-    <nav class="onglets" aria-label="Sections">
-      <button class="onglet" data-vue="collection" aria-current="page">Ma collection</button>
+    <span class="marque"><img src="icons/icon-192.png" alt="" width="28" height="28"><span class="marque-nom">PokeVibes</span></span>
+    <nav class="onglets" aria-label="Collections">
+      <button class="onglet" data-vue="pokemon" aria-current="page">Pokémon</button>
+      <button class="onglet" data-vue="onepiece">One Piece</button>
       <button class="onglet" data-vue="equipage">L'Équipage</button>
     </nav>
   </header>
 
-  <!-- Ma collection -->
+  <!-- Collection Pokémon ou One Piece (même gabarit) -->
   <section id="vue-collection" class="vue">
     <div class="couverture">
-      <p class="couverture-titre">Valeur de la collection de <strong id="mon-pseudo">…</strong></p>
+      <p class="couverture-titre"><span id="titre-collection">Collection Pokémon</span> de <strong id="mon-pseudo">…</strong></p>
       <p class="score" id="total-valeur">0 €</p>
       <div class="jauge" aria-hidden="true"><span id="jauge-achat"></span></div>
       <dl class="chiffres">
+        <div><dt>Scellé</dt><dd id="total-scelle">…</dd></div>
+        <div><dt>Cartes</dt><dd id="total-cartes">…</dd></div>
         <div><dt>Payé (scellé)</dt><dd id="total-achat">…</dd></div>
         <div><dt>Plus-value</dt><dd id="total-gain">…</dd></div>
-        <div><dt>Objets</dt><dd id="total-objets">…</dd></div>
       </dl>
       <p class="maj" id="maj-prix"></p>
     </div>
 
     <div class="filtres" role="group" aria-label="Filtres">
-      <div class="puces" data-filtre="jeu">
-        <button aria-pressed="true" data-val="">Tout</button>
-        <button aria-pressed="false" data-val="pokemon">Pokémon</button>
-        <button aria-pressed="false" data-val="onepiece">One Piece</button>
-      </div>
       <div class="puces" data-filtre="categorie">
-        <button aria-pressed="true" data-val="">Cartes et scellé</button>
-        <button aria-pressed="false" data-val="carte">Cartes</button>
+        <button aria-pressed="true" data-val="">Scellé et cartes</button>
         <button aria-pressed="false" data-val="scelle">Scellé</button>
+        <button aria-pressed="false" data-val="carte">Cartes</button>
       </div>
       <div class="ligne-recherche">
         <input id="recherche" type="search" placeholder="Chercher une carte, un produit…" aria-label="Chercher">
@@ -89,8 +86,10 @@
     <div id="vitrine" class="classeur"></div>
   </section>
 
+  <button id="bouton-ajouter" class="bouton-ajouter">+ Ajouter</button>
+
   <footer class="pied">
-    <span>Prix : Cardmarket FR via Pokemon TCG API, relevés chaque nuit.</span>
+    <span>Prix : Cardmarket FR, relevés chaque nuit. « ? » : prix attendu au prochain relevé.</span>
     <button id="deconnexion" class="lien-discret">Se déconnecter</button>
   </footer>
 </div>
@@ -99,6 +98,83 @@
 <dialog id="fiche" class="fiche">
   <form method="dialog"><button class="fermer" aria-label="Fermer">×</button></form>
   <div id="fiche-contenu"></div>
+</dialog>
+
+<!-- Ajout d'une carte ou de scellé -->
+<dialog id="ajout" class="fiche ajout">
+  <form method="dialog"><button class="fermer" aria-label="Fermer">×</button></form>
+  <h2 id="ajout-titre">Ajouter à la collection Pokémon</h2>
+  <div class="puces" id="ajout-type" role="group" aria-label="Type d'objet">
+    <button aria-pressed="true" data-val="carte">Une carte</button>
+    <button aria-pressed="false" data-val="scelle">Du scellé</button>
+  </div>
+
+  <!-- Carte Pokémon : scanner ou recherche -->
+  <div id="ajout-carte-pokemon" class="etape">
+    <label class="bouton-scanner">
+      📷 Scanner la carte
+      <input id="scan-photo" type="file" accept="image/*" capture="environment" hidden>
+    </label>
+    <p class="aide">Prends la carte bien à plat, en entier, avec le numéro (ex. 144/131) lisible en bas.</p>
+    <label for="recherche-carte">Ou cherche par nom ou par numéro</label>
+    <div class="ligne-recherche">
+      <input id="recherche-carte" type="search" placeholder="ex. Phyllali, ou 144/131">
+      <button id="bouton-chercher" type="button">Chercher</button>
+    </div>
+    <p id="carte-statut" class="message" role="status"></p>
+    <div id="carte-resultats" class="resultats"></div>
+  </div>
+
+  <!-- Carte One Piece : saisie -->
+  <div id="ajout-carte-onepiece" class="etape" hidden>
+    <label for="op-numero">Numéro de la carte</label>
+    <div class="ligne-recherche">
+      <input id="op-numero" placeholder="ex. OP13-003" autocapitalize="characters">
+      <button id="op-chercher" type="button">Trouver</button>
+    </div>
+    <p id="op-statut" class="message" role="status"></p>
+    <div id="op-resultats" class="resultats"></div>
+    <label for="op-nom">Nom</label>
+    <input id="op-nom" placeholder="ex. Gol D. Roger">
+    <label for="op-rarete">Rareté</label>
+    <select id="op-rarete">
+      <option>Leader</option><option>SR</option><option>SEC</option><option>Parallèle</option><option>Manga</option>
+      <option>SP</option><option>TR</option><option>R</option><option>UC</option><option>C</option><option>Promo</option>
+    </select>
+    <label for="op-langue">Langue</label>
+    <select id="op-langue"><option value="FR">Français</option><option value="EN">Anglais</option><option value="JP">Japonais</option></select>
+  </div>
+
+  <!-- Scellé -->
+  <div id="ajout-scelle" class="etape" hidden>
+    <label for="sc-extension">Extension</label>
+    <select id="sc-extension"></select>
+    <label for="sc-type">Type</label>
+    <select id="sc-type">
+      <option>ETB</option><option>Display</option><option>Demi Display</option><option>Bundle</option><option>Tripack</option>
+      <option>Mini Tin</option><option>Pokébox</option><option>Coffret</option><option>Booster</option><option>Duo Pack</option>
+      <option>SPC</option><option>UPC</option><option>Boite Surprise</option><option>Autre</option>
+    </select>
+    <label for="sc-variante">Variante <span class="facultatif">(facultatif, ex. Lucario, Givrali)</span></label>
+    <input id="sc-variante">
+    <label for="sc-nom">Nom affiché</label>
+    <input id="sc-nom">
+    <label class="case"><input id="sc-defaut" type="checkbox"> Exemplaire avec défaut (trou, coin abîmé…)</label>
+  </div>
+
+  <!-- Commun : sélection, quantité, prix d'achat -->
+  <div id="ajout-final" class="etape" hidden>
+    <div id="ajout-choix" class="choix"></div>
+    <div class="deux-colonnes">
+      <div><label for="aj-quantite">Quantité</label><input id="aj-quantite" type="number" min="1" value="1" inputmode="numeric"></div>
+      <div><label for="aj-prix">Prix d'achat unitaire <span class="facultatif">(facultatif)</span></label><input id="aj-prix" type="number" min="0" step="0.01" inputmode="decimal" placeholder="€"></div>
+    </div>
+    <div id="bloc-etat"><label for="aj-etat">État</label>
+      <select id="aj-etat"><option>Near Mint</option><option>Excellent</option><option>Good</option><option>Light Played</option><option>Played</option><option>Poor</option></select>
+    </div>
+    <button id="bouton-valider" type="button" class="bouton-principal">Ajouter à ma collection</button>
+    <p id="ajout-message" class="message" role="status"></p>
+  </div>
 </dialog>
 
 <script type="module" src="app.js"></script>
