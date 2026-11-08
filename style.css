@@ -278,6 +278,10 @@ img { max-width: 100%; }
 }
 .vignette-provisoire strong { color: var(--encre); font: 800 .85rem var(--titre); }
 .choix .vignette-provisoire { width: 64px; flex: none; }
+.prix-tuile { font-weight: 700; color: var(--encre); }
+.prix-tuile.inconnu, .prix-choix .inconnu { color: var(--encre-douce); }
+.prix-choix { margin: 6px 0 0; }
+.prix-choix strong { font: 800 1.15rem var(--titre); }
 .resultat.choisi { border-color: var(--encre); box-shadow: 0 0 0 2px var(--encre) inset; }
 .choix { display: flex; gap: 12px; align-items: center; margin-top: 14px; padding: 10px; border-radius: 10px; background: var(--carton); }
 .choix:empty { display: none; }

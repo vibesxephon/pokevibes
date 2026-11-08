@@ -320,6 +320,77 @@ async function setsPokemon() {
 }
 const RARETES = { "illustration rare": "AR", "illustration spéciale rare": "SAR", "hyper rare": "Gold", "ultra rare": "FA", "promo": "Promo" };
 
+/* ================= Index local des cartes Pokémon FR =================
+   Toutes les cartes (≈ 20 000) téléchargées une fois (≈ 200 Ko compressés), puis cherchées sur le téléphone :
+   sans accents, plusieurs mots-clés, numéro seul (« 191 » = toutes les cartes 191/x et x/191), « nom + numéro »… */
+let indexCartes = null;
+const cleNum = (s) => String(s ?? "").toUpperCase().replace(/\s+/g, "").replace(/^([A-Z]*)0*(\d+)$/, "$1$2");
+function chargerIndex() {
+  if (!indexCartes) {
+    indexCartes = (async () => {
+      const { data } = await sb.auth.getSession();
+      const r = await fetch(`${SUPABASE_URL}/functions/v1/catalogue?index=fr`, {
+        headers: { Authorization: `Bearer ${data.session.access_token}`, apikey: SUPABASE_KEY },
+      });
+      if (!r.ok) throw new Error(`index indisponible (${r.status})`);
+      const j = await r.json();
+      const sets = new Map(j.sets.map(([id, nom, total, ordre]) => [id, { id, nom, total, ordre }]));
+      const cartes = j.cartes.map(([id, localId, name, img]) => {
+        const set = sets.get(id.slice(0, id.lastIndexOf("-")));
+        return { id, localId, name, set, image: img ? (img.startsWith("http") ? img : j.img + img) : null,
+          n: cleNum(localId), cle: ` ${sansAccent(`${name} ${set?.nom ?? ""}`)} ` };
+      });
+      return { sets, cartes };
+    })().catch((e) => { indexCartes = null; throw e; });
+  }
+  return indexCartes;
+}
+
+function rechercheLocale(idx, q) {
+  const brut = String(q ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const nums = [], mots = [];
+  for (const t of brut.split(/[\s,;]+/).filter(Boolean)) {
+    const m = t.match(/^([a-z]{0,4}\d+)\/([a-z]{0,4}\d+)$/);
+    if (m) nums.push({ a: cleNum(m[1]), b: cleNum(m[2]) });
+    else if (/^([a-z]{1,4})?\d+$/.test(t)) nums.push({ a: cleNum(t) });
+    else mots.push(...sansAccent(t).split(" ").filter(Boolean));
+  }
+  if (!nums.length && !mots.length) return [];
+  const res = [];
+  for (const c of idx.cartes) {
+    if (mots.some((w) => !c.cle.includes(w))) continue;
+    const tot = c.set?.total != null ? String(c.set.total) : null;
+    let score = 0, ok = true;
+    for (const { a, b } of nums) {
+      if (b != null) { if (c.n === a && (tot === b || /^[A-Z]/.test(a))) score += 4; else { ok = false; break; } }
+      else if (c.n === a) score += 2;   // le numéro de la carte
+      else if (tot === a) score += 1;   // le total de l'extension
+      else { ok = false; break; }
+    }
+    if (!ok) continue;
+    if (mots.length) {
+      const nom = sansAccent(c.name);
+      if (nom === mots.join(" ")) score += 2;
+      else if (c.cle.includes(` ${mots[0]}`)) score += 1; // mot en début de mot
+    }
+    res.push({ c, score });
+  }
+  res.sort((x, y) => y.score - x.score || (y.c.set?.ordre ?? -1) - (x.c.set?.ordre ?? -1) || (parseInt(y.c.localId) || 0) - (parseInt(x.c.localId) || 0));
+  return res.map((x) => x.c);
+}
+
+/* ================= Prix déjà connus (pour l'affichage au scan) ================= */
+async function prixConnus(ids) {
+  const out = new Map();
+  if (!ids.length) return out;
+  const { data: prods } = await sb.from("produits").select("id, tcgdex_id").in("tcgdex_id", ids);
+  if (!prods?.length) return out;
+  const { data: px } = await sb.from("prix_actuel").select("produit_id, prix, le").eq("etat_prix", "standard").in("produit_id", prods.map((p) => p.id));
+  const parProduit = new Map((px ?? []).map((x) => [x.produit_id, x]));
+  for (const p of prods) if (parProduit.has(p.id)) out.set(p.tcgdex_id, parProduit.get(p.id));
+  return out;
+}
+
 /* ================= Ajout ================= */
 const ajout = { type: "carte", choix: null };
 
@@ -332,6 +403,7 @@ $("#bouton-ajouter").addEventListener("click", async () => {
   $("#aj-quantite").value = 1; $("#aj-prix").value = "";
   choisirType("carte");
   $("#ajout").showModal();
+  chargerIndex().catch(() => {}); // en arrière-plan : prêt avant la première recherche
   await remplirExtensions();
 });
 
@@ -371,12 +443,17 @@ async function chercherCartes(saisie) {
   const statut = $("#carte-statut");
   statut.textContent = "Recherche…";
   try {
-    const m = q.match(/^(TG|GG)?\s*0*(\d{1,3})\s*(?:\/\s*(?:TG|GG)?\s*(\d{1,3}))?$/i);
     let res;
-    if (m) res = await parNumero(m[1] ? `${m[1].toUpperCase()}${m[2].padStart(2, "0")}` : m[2], m[3] ? Number(m[3]) : null);
-    else res = (await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(q)}`));
-    await afficherResultats(res.slice(0, 60));
-    statut.textContent = res.length ? `${res.length} carte${res.length > 1 ? "s" : ""} trouvée${res.length > 1 ? "s" : ""}. Touche la tienne.` : "Aucune carte trouvée. Essaie le nom exact ou le numéro complet (ex. 144/131).";
+    try { res = rechercheLocale(await chargerIndex(), q); }
+    catch { // index indisponible : recherche en ligne, plus limitée
+      const m = q.match(/^(TG|GG)?\s*0*(\d{1,3})\s*(?:\/\s*(?:TG|GG)?\s*(\d{1,3}))?$/i);
+      if (m) res = await parNumero(m[1] ? `${m[1].toUpperCase()}${m[2].padStart(2, "0")}` : m[2], m[3] ? Number(m[3]) : null);
+      else res = await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(q)}`);
+    }
+    await afficherResultats(res.slice(0, 120));
+    statut.textContent = res.length
+      ? `${res.length} carte${res.length > 1 ? "s" : ""} trouvée${res.length > 1 ? "s" : ""}${res.length > 120 ? " (les 120 premières affichées : ajoute un mot pour affiner)" : ""}. Touche la tienne.`
+      : "Aucune carte trouvée. Essaie un autre mot, ou le numéro (ex. 221, 221/191).";
   } catch (err) { statut.textContent = `Recherche impossible : ${err.message}`; }
 }
 
@@ -399,13 +476,22 @@ function vignetteProvisoire(nom, numero, ext) {
   return `<span class="vignette-provisoire"><strong>${esc(nom)}</strong><span>${esc(numero)}</span><span>${esc(ext ?? "")}</span></span>`;
 }
 async function afficherResultats(liste) {
-  const sets = await setsPokemon().catch(() => new Map());
+  const sets = liste.every((c) => c.set) ? null : await setsPokemon().catch(() => new Map());
   $("#carte-resultats").innerHTML = liste.map((c) => {
-    const sid = c.id.slice(0, c.id.lastIndexOf("-")), set = sets.get(sid);
+    const sid = c.id.slice(0, c.id.lastIndexOf("-"));
+    const set = c.set ? { name: c.set.nom, cardCount: { official: c.set.total } } : sets.get(sid);
     const num = `${c.localId}${set?.cardCount?.official ? "/" + set.cardCount.official : ""}`;
     const visuel = c.image ? `<img src="${esc(c.image)}/low.webp" alt="" loading="lazy">` : vignetteProvisoire(c.name, num, set?.name);
-    return `<button class="resultat" data-id="${esc(c.id)}">${visuel}<span>${esc(c.name)}</span><span class="infos">${esc(set?.name ?? sid)} · ${esc(num)}</span></button>`;
+    return `<button class="resultat" data-id="${esc(c.id)}">${visuel}<span>${esc(c.name)}</span><span class="infos">${esc(set?.name ?? sid)} · ${esc(num)}</span><span class="prix-tuile" data-prix="${esc(c.id)}"></span></button>`;
   }).join("");
+  // Prix déjà connus : affichés dès qu'ils arrivent (« ? » sinon)
+  prixConnus(liste.map((c) => c.id)).then((m) => {
+    document.querySelectorAll("#carte-resultats .prix-tuile").forEach((el) => {
+      const p = m.get(el.dataset.prix);
+      el.textContent = p ? euro(p.prix) : "?";
+      el.classList.toggle("inconnu", !p);
+    });
+  }).catch(() => {});
 }
 $("#carte-resultats").addEventListener("click", async (e) => {
   const b = e.target.closest(".resultat"); if (!b) return;
@@ -421,7 +507,14 @@ $("#carte-resultats").addEventListener("click", async (e) => {
       image: fr.image ? `${fr.image}/high.webp` : null, cardmarket_id: cm,
     };
     $("#ajout-choix").innerHTML = `${fr.image ? `<img src="${esc(fr.image)}/low.webp" alt="">` : vignetteProvisoire(fr.name, ajout.choix.numero, "")}<div><strong>${esc(fr.name)}</strong><br>
-      <span class="infos">${esc(fr.set?.name)} · ${esc(ajout.choix.numero)} · ${esc(ajout.choix.rarete ?? "")}</span>${fr.image ? "" : `<br><span class="infos">Image pas encore disponible, elle s'ajoutera toute seule.</span>`}</div>`;
+      <span class="infos">${esc(fr.set?.name)} · ${esc(ajout.choix.numero)} · ${esc(ajout.choix.rarete ?? "")}</span>${fr.image ? "" : `<br><span class="infos">Image pas encore disponible, elle s'ajoutera toute seule.</span>`}
+      <p class="prix-choix" id="prix-choix">Prix Cardmarket FR : …</p></div>`;
+    prixConnus([fr.id]).then((m) => {
+      const p = m.get(fr.id), el = $("#prix-choix"); if (!el) return;
+      el.innerHTML = p
+        ? `Prix Cardmarket FR : <strong>${euro(p.prix)}</strong> <span class="infos">(relevé du ${new Date(p.le).toLocaleDateString("fr-FR")})</span>`
+        : `Prix Cardmarket FR : <strong class="inconnu">?</strong> <span class="infos">relevé la nuit prochaine</span>`;
+    }).catch(() => { const el = $("#prix-choix"); if (el) el.innerHTML = `Prix Cardmarket FR : <strong class="inconnu">?</strong>`; });
     $("#ajout-final").hidden = false;
     $("#carte-statut").textContent = "";
     $("#ajout-final").scrollIntoView({ behavior: calme ? "auto" : "smooth", block: "nearest" });
@@ -526,11 +619,19 @@ async function appliquerReconnaissance(r) {
 
   // Pokémon : par numéro d'abord, puis par nom ; la plus ressemblante en premier
   let res = [];
-  if (r.numero) {
-    const brut = String(r.numero).toUpperCase().replace(/\s+/g, "");
-    res = await parNumero(/^(TG|GG|SV)/.test(brut) ? brut : brut.replace(/^0+(?=\d)/, ""), r.total ? Number(r.total) : null);
+  const num = String(r.numero ?? "").replace(/\s+/g, ""), tot = /^\w*\d+$/.test(String(r.total ?? "")) ? String(r.total) : "";
+  try {
+    const idx = await chargerIndex();
+    if (num) res = rechercheLocale(idx, tot ? `${num}/${tot}` : num);
+    if (!res.length && num) res = rechercheLocale(idx, num);
+    if (!res.length && r.nom) res = rechercheLocale(idx, r.nom);
+  } catch {
+    if (num) {
+      const brut = num.toUpperCase();
+      res = await parNumero(/^(TG|GG|SV)/.test(brut) ? brut : brut.replace(/^0+(?=\d)/, ""), tot ? Number(tot) : null);
+    }
+    if (!res.length && r.nom) res = await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(r.nom.split(" ")[0])}`);
   }
-  if (!res.length && r.nom) res = (await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(r.nom.split(" ")[0])}`));
   const classe = res.map((c) => ({ c, s: ressemblance(c.name, r.nom) + 0.5 * ressemblance(c.name, r.nom_en) }))
     .sort((a, b) => b.s - a.s).map((x) => x.c).slice(0, 40);
   $("#recherche-carte").value = r.numero ? `${r.numero}${r.total ? "/" + r.total : ""}` : (r.nom ?? "");
