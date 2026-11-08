@@ -380,14 +380,13 @@ function rechercheLocale(idx, q) {
 }
 
 /* ================= Prix déjà connus (pour l'affichage au scan) ================= */
+// Prix de la collection d'abord, sinon prix relevé la nuit pour toute l'extension (table prix_catalogue)
 async function prixConnus(ids) {
   const out = new Map();
   if (!ids.length) return out;
-  const { data: prods } = await sb.from("produits").select("id, tcgdex_id").in("tcgdex_id", ids);
-  if (!prods?.length) return out;
-  const { data: px } = await sb.from("prix_actuel").select("produit_id, prix, le").eq("etat_prix", "standard").in("produit_id", prods.map((p) => p.id));
-  const parProduit = new Map((px ?? []).map((x) => [x.produit_id, x]));
-  for (const p of prods) if (parProduit.has(p.id)) out.set(p.tcgdex_id, parProduit.get(p.id));
+  const { data, error } = await sb.rpc("prix_scan", { p_ids: ids });
+  if (error) throw error;
+  for (const x of data ?? []) out.set(x.tcgdex_id, x);
   return out;
 }
 
