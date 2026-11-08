@@ -374,8 +374,8 @@ async function chercherCartes(saisie) {
     const m = q.match(/^(TG|GG)?\s*0*(\d{1,3})\s*(?:\/\s*(?:TG|GG)?\s*(\d{1,3}))?$/i);
     let res;
     if (m) res = await parNumero(m[1] ? `${m[1].toUpperCase()}${m[2].padStart(2, "0")}` : m[2], m[3] ? Number(m[3]) : null);
-    else res = (await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(q)}`)).filter((c) => c.image);
-    afficherResultats(res.slice(0, 60));
+    else res = (await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(q)}`));
+    await afficherResultats(res.slice(0, 60));
     statut.textContent = res.length ? `${res.length} carte${res.length > 1 ? "s" : ""} trouvée${res.length > 1 ? "s" : ""}. Touche la tienne.` : "Aucune carte trouvée. Essaie le nom exact ou le numéro complet (ex. 144/131).";
   } catch (err) { statut.textContent = `Recherche impossible : ${err.message}`; }
 }
@@ -384,7 +384,7 @@ async function parNumero(num, total) {
   const essais = [...new Set([num, num.padStart(3, "0"), String(Number(num) || num)])];
   const vus = new Map();
   for (const n of essais) for (const c of await catalogue(`${TCG}/fr/cards?localId=${encodeURIComponent(n)}`)) vus.set(c.id, c);
-  let l = [...vus.values()].filter((c) => c.image);
+  let l = [...vus.values()];
   if (total) {
     const sets = await setsPokemon();
     const bons = l.filter((c) => sets.get(c.id.slice(0, c.id.lastIndexOf("-")))?.cardCount?.official === total);
@@ -393,9 +393,19 @@ async function parNumero(num, total) {
   return l.reverse(); // les extensions récentes d'abord
 }
 
-function afficherResultats(liste) {
-  $("#carte-resultats").innerHTML = liste.map((c) => `<button class="resultat" data-id="${esc(c.id)}">
-    <img src="${esc(c.image)}/low.webp" alt="" loading="lazy"><span>${esc(c.name)}</span><span class="infos">${esc(c.id)}</span></button>`).join("");
+// Les cartes toutes récentes (ex. Règne Delta) et les promos n'ont pas encore d'image dans TCGdex :
+// on les affiche quand même, avec une vignette provisoire. L'image arrive plus tard (relevé de la nuit).
+function vignetteProvisoire(nom, numero, ext) {
+  return `<span class="vignette-provisoire"><strong>${esc(nom)}</strong><span>${esc(numero)}</span><span>${esc(ext ?? "")}</span></span>`;
+}
+async function afficherResultats(liste) {
+  const sets = await setsPokemon().catch(() => new Map());
+  $("#carte-resultats").innerHTML = liste.map((c) => {
+    const sid = c.id.slice(0, c.id.lastIndexOf("-")), set = sets.get(sid);
+    const num = `${c.localId}${set?.cardCount?.official ? "/" + set.cardCount.official : ""}`;
+    const visuel = c.image ? `<img src="${esc(c.image)}/low.webp" alt="" loading="lazy">` : vignetteProvisoire(c.name, num, set?.name);
+    return `<button class="resultat" data-id="${esc(c.id)}">${visuel}<span>${esc(c.name)}</span><span class="infos">${esc(set?.name ?? sid)} · ${esc(num)}</span></button>`;
+  }).join("");
 }
 $("#carte-resultats").addEventListener("click", async (e) => {
   const b = e.target.closest(".resultat"); if (!b) return;
@@ -410,8 +420,8 @@ $("#carte-resultats").addEventListener("click", async (e) => {
       set_id: fr.set?.id, set_nom: fr.set?.name, set_nom_en: en?.set?.name ?? null,
       image: fr.image ? `${fr.image}/high.webp` : null, cardmarket_id: cm,
     };
-    $("#ajout-choix").innerHTML = `<img src="${esc(fr.image)}/low.webp" alt=""><div><strong>${esc(fr.name)}</strong><br>
-      <span class="infos">${esc(fr.set?.name)} · ${esc(ajout.choix.numero)} · ${esc(ajout.choix.rarete ?? "")}</span></div>`;
+    $("#ajout-choix").innerHTML = `${fr.image ? `<img src="${esc(fr.image)}/low.webp" alt="">` : vignetteProvisoire(fr.name, ajout.choix.numero, "")}<div><strong>${esc(fr.name)}</strong><br>
+      <span class="infos">${esc(fr.set?.name)} · ${esc(ajout.choix.numero)} · ${esc(ajout.choix.rarete ?? "")}</span>${fr.image ? "" : `<br><span class="infos">Image pas encore disponible, elle s'ajoutera toute seule.</span>`}</div>`;
     $("#ajout-final").hidden = false;
     $("#carte-statut").textContent = "";
     $("#ajout-final").scrollIntoView({ behavior: calme ? "auto" : "smooth", block: "nearest" });
@@ -520,11 +530,11 @@ async function appliquerReconnaissance(r) {
     const brut = String(r.numero).toUpperCase().replace(/\s+/g, "");
     res = await parNumero(/^(TG|GG|SV)/.test(brut) ? brut : brut.replace(/^0+(?=\d)/, ""), r.total ? Number(r.total) : null);
   }
-  if (!res.length && r.nom) res = (await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(r.nom.split(" ")[0])}`)).filter((c) => c.image);
+  if (!res.length && r.nom) res = (await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(r.nom.split(" ")[0])}`));
   const classe = res.map((c) => ({ c, s: ressemblance(c.name, r.nom) + 0.5 * ressemblance(c.name, r.nom_en) }))
     .sort((a, b) => b.s - a.s).map((x) => x.c).slice(0, 40);
   $("#recherche-carte").value = r.numero ? `${r.numero}${r.total ? "/" + r.total : ""}` : (r.nom ?? "");
-  afficherResultats(classe);
+  await afficherResultats(classe);
   if (classe.length) {
     $("#carte-statut").textContent = "La première carte est la proposition de l'IA. Si ce n'est pas la bonne, touche la tienne.";
     $("#carte-resultats .resultat")?.click();
