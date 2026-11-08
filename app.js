@@ -39,6 +39,7 @@ async function afficher(session) {
   const { data: moi } = await sb.from("membres").select("id, pseudo").eq("auth_id", session.user.id).maybeSingle();
   etat.moi = moi;
   $("#mon-pseudo").textContent = moi?.pseudo ?? "toi";
+  $("#initiale").textContent = (moi?.pseudo ?? "?").trim().charAt(0).toUpperCase() || "?";
   await chargerCollection();
 }
 
@@ -90,12 +91,12 @@ function resume() {
   $("#total-cartes").innerHTML = `${euro(somme(cartes, (x) => x.valeur), 0)} <small>(${nb(cartes)})</small>`;
   $("#total-achat").textContent = euro(achat, 0);
   const g = $("#total-gain");
-  g.textContent = `${gain >= 0 ? "+" : ""}${euro(gain, 0)} (${pct(achat ? (gain / achat) * 100 : 0)})`;
+  g.innerHTML = `<span class="pastille">${pct(achat ? (gain / achat) * 100 : 0)}</span> ${gain >= 0 ? "+" : ""}${euro(gain, 0)} de plus-value`;
   g.className = gain >= 0 ? "positif" : "negatif";
   requestAnimationFrame(() => { $("#jauge-achat").style.width = `${valeur ? Math.min(100, (achat / valeur) * 100) : 0}%`; });
   const dates = c.map((x) => x.prix_date).filter(Boolean).sort();
   const enAttente = c.filter((x) => x.prix_actuel == null).length;
-  $("#maj-prix").textContent = (dates.length ? `Dernier relevé de prix le ${new Date(dates.at(-1)).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}. La jauge montre la part payée.` : "")
+  $("#maj-prix").textContent = (dates.length ? `Dernier relevé de prix le ${new Date(dates.at(-1)).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}.` : "")
     + (enAttente ? ` ${enAttente} objet${enAttente > 1 ? "s" : ""} en attente de prix.` : "");
 }
 
@@ -186,17 +187,22 @@ document.querySelectorAll(".filtres .puces").forEach((g) => g.addEventListener("
 $("#recherche").addEventListener("input", (e) => { etat.recherche = e.target.value; dessinerClasseur(); });
 $("#tri").addEventListener("change", (e) => { etat.tri = e.target.value; dessinerClasseur(); });
 
-/* ================= Onglets ================= */
-document.querySelectorAll(".onglet").forEach((o) => o.addEventListener("click", () => {
-  document.querySelectorAll(".onglet").forEach((x) => x.toggleAttribute("aria-current", x === o));
-  o.setAttribute("aria-current", "page");
-  const v = o.dataset.vue, equipage = v === "equipage";
+/* ================= Navigation : barre du bas et choix du jeu ================= */
+function montrerVue(v) {
+  const equipage = v === "equipage";
+  document.querySelectorAll(".nav-item").forEach((x) => x.toggleAttribute("aria-current", x.dataset.vue === v));
+  document.querySelector(`.nav-item[data-vue="${v}"]`)?.setAttribute("aria-current", "page");
   $("#vue-collection").hidden = equipage;
   $("#vue-equipage").hidden = !equipage;
-  $("#bouton-ajouter").hidden = equipage;
-  if (equipage) chargerEquipage();
-  else { etat.jeu = v; dessinerCollection(); }
+  if (equipage) chargerEquipage(); else dessinerCollection();
   scrollTo({ top: 0 });
+}
+document.querySelectorAll(".nav-item").forEach((o) => o.addEventListener("click", () => montrerVue(o.dataset.vue)));
+function marquerJeu(jeu) {
+  document.querySelectorAll(".jeu-choix").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.jeu === jeu)));
+}
+document.querySelectorAll(".jeu-choix").forEach((o) => o.addEventListener("click", () => {
+  etat.jeu = o.dataset.jeu; marquerJeu(etat.jeu); dessinerCollection();
 }));
 
 async function chargerEquipage() {
@@ -643,8 +649,7 @@ async function appliquerReconnaissance(r) {
 
 function basculerJeu(jeu) {
   etat.jeu = jeu;
-  document.querySelectorAll(".onglet").forEach((x) => x.toggleAttribute("aria-current", x.dataset.vue === jeu));
-  document.querySelector(`.onglet[data-vue="${jeu}"]`)?.setAttribute("aria-current", "page");
+  marquerJeu(jeu);
   $("#ajout-titre").textContent = `Ajouter à la collection ${NOM_JEU[jeu]}`;
   dessinerCollection();
 }

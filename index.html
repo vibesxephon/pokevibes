@@ -5,22 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PokeVibes</title>
 <meta name="description" content="Collection TCG de L'Équipage : cartes et scellé, prix Cardmarket FR.">
-<meta name="theme-color" content="#1C2140">
+<meta name="theme-color" content="#F6F6F4">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pixelify+Sans:wght@600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
 <!-- Écran de connexion -->
 <main id="ecran-connexion" class="connexion" hidden>
   <div class="connexion-carte">
-    <img src="icons/icon-192.png" alt="" width="72" height="72">
-    <h1>PokeVibes</h1>
+    <img class="pixel" src="icons/embleme-112.png" alt="" width="84" height="84">
+    <h1 class="marque-nom">PokeVibes</h1>
     <p>Le classeur de L'Équipage : ta collection et sa valeur au prix Cardmarket FR.</p>
     <form id="form-connexion">
       <label for="email">Ton e-mail</label>
@@ -36,32 +36,33 @@
 <!-- Application -->
 <div id="app" hidden>
   <header class="barre">
-    <span class="marque"><img src="icons/icon-192.png" alt="" width="28" height="28"><span class="marque-nom">PokeVibes</span></span>
-    <nav class="onglets" aria-label="Collections">
-      <button class="onglet" data-vue="pokemon" aria-current="page">Pokémon</button>
-      <button class="onglet" data-vue="onepiece">One Piece</button>
-      <button class="onglet" data-vue="equipage">L'Équipage</button>
-    </nav>
+    <span class="marque"><img class="pixel" src="icons/embleme-112.png" alt="" width="32" height="32"><span class="marque-nom">PokeVibes</span></span>
+    <span class="profil" aria-hidden="true"><span id="initiale">?</span></span>
   </header>
 
   <!-- Collection Pokémon ou One Piece (même gabarit) -->
   <section id="vue-collection" class="vue">
+    <div class="choix-jeu" role="group" aria-label="Collection">
+      <button class="jeu-choix" data-jeu="pokemon" aria-pressed="true">Pokémon</button>
+      <button class="jeu-choix" data-jeu="onepiece" aria-pressed="false">One Piece</button>
+    </div>
+
     <div class="couverture">
       <p class="couverture-titre"><span id="titre-collection">Collection Pokémon</span> de <strong id="mon-pseudo">…</strong></p>
       <p class="score" id="total-valeur">0 €</p>
+      <p class="gain-ligne"><span id="total-gain">…</span></p>
       <div class="jauge" aria-hidden="true"><span id="jauge-achat"></span></div>
       <dl class="chiffres">
         <div><dt>Scellé</dt><dd id="total-scelle">…</dd></div>
         <div><dt>Cartes</dt><dd id="total-cartes">…</dd></div>
         <div><dt>Payé (scellé)</dt><dd id="total-achat">…</dd></div>
-        <div><dt>Plus-value</dt><dd id="total-gain">…</dd></div>
       </dl>
       <p class="maj" id="maj-prix"></p>
     </div>
 
     <div class="filtres" role="group" aria-label="Filtres">
       <div class="puces" data-filtre="categorie">
-        <button aria-pressed="true" data-val="">Scellé et cartes</button>
+        <button aria-pressed="true" data-val="">Tout</button>
         <button aria-pressed="false" data-val="scelle">Scellé</button>
         <button aria-pressed="false" data-val="carte">Cartes</button>
       </div>
@@ -86,12 +87,22 @@
     <div id="vitrine" class="classeur"></div>
   </section>
 
-  <button id="bouton-ajouter" class="bouton-ajouter">+ Ajouter</button>
-
   <footer class="pied">
     <span>Prix : Cardmarket FR, relevés chaque nuit. « ? » : prix attendu au prochain relevé.</span>
     <button id="deconnexion" class="lien-discret">Se déconnecter</button>
   </footer>
+
+  <nav class="nav-bas" aria-label="Navigation">
+    <button class="nav-item" data-vue="collection" aria-current="page">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="11" height="16" rx="2"/><path d="M18 6v13a2 2 0 0 1-2 2H8"/></svg>
+      Collection</button>
+    <button id="bouton-ajouter" class="bouton-scan" aria-label="Scanner ou ajouter une carte">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M12 9v6M9 12h6"/></svg>
+    </button>
+    <button class="nav-item" data-vue="equipage">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><circle cx="17" cy="10" r="2.6"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M15 15.2c2.5-.4 4.6.9 5.5 3.8"/></svg>
+      L'Équipage</button>
+  </nav>
 </div>
 
 <!-- Fiche détaillée -->
@@ -178,6 +189,6 @@
   </div>
 </dialog>
 
-<script type="module" src="app.js?v=6"></script>
+<script type="module" src="app.js?v=7"></script>
 </body>
 </html>
