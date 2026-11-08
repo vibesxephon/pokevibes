@@ -257,6 +257,10 @@ img { max-width: 100%; }
   margin: 16px 0 6px !important; padding: 16px; border-radius: 12px; cursor: pointer;
   background: var(--couverture); color: #fff; font: 800 1.1rem var(--titre) !important;
 }
+#scan-statut:not(:empty) { padding: 10px 12px; border-radius: 10px; background: var(--pochette, #fff); color: var(--encre); font-weight: 700; border-left: 4px solid var(--score); }
+#scan-statut.en-cours::after { content: ""; display: inline-block; width: .9em; height: .9em; margin-left: 8px; vertical-align: -2px; border: 2px solid var(--score); border-right-color: transparent; border-radius: 50%; animation: tourne .8s linear infinite; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { #scan-statut.en-cours::after { animation: none; } }
 .aide { margin: 4px 0 0; font-size: .85rem; color: var(--encre-douce); }
 .resultats {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px;

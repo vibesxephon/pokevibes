@@ -426,32 +426,58 @@ function ressemblance(a, b) {
   let commun = 0; for (const m of x) if (y.has(m)) commun++;
   return commun / Math.max(x.size, y.size);
 }
+// Décodage de la photo : <img> d'abord (fiable sur iPhone, orientation EXIF appliquée), createImageBitmap en secours
+function avecDelai(promesse, ms, quoi) {
+  return Promise.race([promesse, new Promise((_, ko) => setTimeout(() => ko(new Error(`${quoi} trop long`)), ms))]);
+}
+async function decoderPhoto(f) {
+  const url = URL.createObjectURL(f);
+  try {
+    const img = new Image();
+    img.decoding = "async";
+    await avecDelai(new Promise((ok, ko) => { img.onload = ok; img.onerror = () => ko(new Error("format de photo non lu")); img.src = url; }), 20000, "ouverture de la photo");
+    return img;
+  } catch (e1) {
+    try { return await avecDelai(createImageBitmap(f), 20000, "ouverture de la photo"); }
+    catch { throw e1; }
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 60000); }
+}
 async function photoReduite(f, max = 1280) {
-  const bmp = await createImageBitmap(f, { imageOrientation: "from-image" });
-  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const src = await decoderPhoto(f);
+  const w0 = src.naturalWidth || src.width, h0 = src.naturalHeight || src.height;
+  const k = Math.min(1, max / Math.max(w0, h0));
   const c = document.createElement("canvas");
-  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
-  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-  const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.85));
-  const buf = new Uint8Array(await blob.arrayBuffer());
-  let s = ""; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-  return { image: btoa(s), mime: "image/jpeg", bmp };
+  c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
+  c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+  const dataUrl = c.toDataURL("image/jpeg", 0.85);
+  const image = dataUrl.slice(dataUrl.indexOf(",") + 1);
+  if (image.length < 1000) throw new Error("photo vide");
+  return { image, mime: "image/jpeg", bmp: c };
 }
 
+let scanEnCours = false;
 $("#scan-photo").addEventListener("change", async (e) => {
-  const f = e.target.files?.[0]; if (!f) return;
-  e.target.value = "";
+  const input = e.target;
+  const f = input.files?.[0]; if (!f || scanEnCours) return;
+  scanEnCours = true;
   const statut = $("#scan-statut");
-  statut.textContent = "L'IA regarde ta photo… 🔍";
+  statut.classList.add("en-cours");
+  statut.textContent = "Photo reçue, préparation… 📸";
   let photo;
   try {
     photo = await photoReduite(f);
-    const { data: r, error } = await sb.functions.invoke("reconnaitre", { body: { image: photo.image, mime: photo.mime } });
+    statut.textContent = "L'IA regarde ta photo… 🔍 (quelques secondes)";
+    const { data: r, error } = await avecDelai(
+      sb.functions.invoke("reconnaitre", { body: { image: photo.image, mime: photo.mime } }), 45000, "réponse de l'IA");
     if (error || !r || r.erreur) throw new Error(r?.erreur ?? error?.message ?? "pas de réponse");
     await appliquerReconnaissance(r);
   } catch (err) {
-    statut.textContent = `L'IA n'a pas pu lire la photo (${err.message}). Lecture du numéro en secours…`;
+    statut.textContent = `L'IA n'a pas pu lire la photo (${err.message}).${photo ? " Lecture du numéro en secours…" : " Réessaie, ou cherche la carte par nom."}`;
     if (photo) await lectureNumero(photo.bmp);
+  } finally {
+    statut.classList.remove("en-cours");
+    input.value = ""; // seulement après lecture (sur iPhone, vider avant rend la photo illisible)
+    scanEnCours = false;
   }
 });
 
