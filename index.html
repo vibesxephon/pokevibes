@@ -104,6 +104,12 @@
 <dialog id="ajout" class="fiche ajout">
   <form method="dialog"><button class="fermer" aria-label="Fermer">×</button></form>
   <h2 id="ajout-titre">Ajouter à la collection Pokémon</h2>
+  <label class="bouton-scanner">
+    📷 Scanner avec l'appareil photo
+    <input id="scan-photo" type="file" accept="image/*" capture="environment" hidden>
+  </label>
+  <p class="aide">Une carte bien à plat et en entier, ou un produit scellé de face. L'IA reconnaît le jeu, le nom, le numéro et l'extension.</p>
+  <p id="scan-statut" class="message" role="status"></p>
   <div class="puces" id="ajout-type" role="group" aria-label="Type d'objet">
     <button aria-pressed="true" data-val="carte">Une carte</button>
     <button aria-pressed="false" data-val="scelle">Du scellé</button>
@@ -111,11 +117,6 @@
 
   <!-- Carte Pokémon : scanner ou recherche -->
   <div id="ajout-carte-pokemon" class="etape">
-    <label class="bouton-scanner">
-      📷 Scanner la carte
-      <input id="scan-photo" type="file" accept="image/*" capture="environment" hidden>
-    </label>
-    <p class="aide">Prends la carte bien à plat, en entier, avec le numéro (ex. 144/131) lisible en bas.</p>
     <label for="recherche-carte">Ou cherche par nom ou par numéro</label>
     <div class="ligne-recherche">
       <input id="recherche-carte" type="search" placeholder="ex. Phyllali, ou 144/131">

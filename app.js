@@ -328,7 +328,7 @@ $("#bouton-ajouter").addEventListener("click", async () => {
   $("#ajout-titre").textContent = `Ajouter à la collection ${NOM_JEU[etat.jeu]}`;
   $("#ajout-message").textContent = "";
   $("#carte-resultats").innerHTML = ""; $("#carte-statut").textContent = "";
-  $("#op-resultats").innerHTML = ""; $("#op-statut").textContent = "";
+  $("#op-resultats").innerHTML = ""; $("#op-statut").textContent = ""; $("#scan-statut").textContent = "";
   $("#aj-quantite").value = 1; $("#aj-prix").value = "";
   choisirType("carte");
   $("#ajout").showModal();
@@ -349,7 +349,7 @@ function choisirType(t) {
 }
 
 async function remplirExtensions() {
-  const { data } = await sb.from("extensions").select("id, jeu, code, nom_fr, ordre").order("ordre", { ascending: false });
+  const { data } = await sb.from("extensions").select("id, jeu, code, nom_fr, nom_en, ordre").order("ordre", { ascending: false });
   etat.extensions = data ?? [];
   $("#sc-extension").innerHTML = etat.extensions.filter((e) => e.jeu === etat.jeu)
     .map((e) => `<option value="${e.id}">${esc(e.nom_fr)} (${esc(e.code)})</option>`).join("");
@@ -418,7 +418,102 @@ $("#carte-resultats").addEventListener("click", async (e) => {
   } catch (err) { $("#carte-statut").textContent = `Carte introuvable : ${err.message}`; }
 });
 
-// --- Scanner (lecture du numéro en bas de la carte) ---
+// --- Scanner : reconnaissance par IA (Gemini), lecture du numéro en secours ---
+const sansAccent = (s) => String(s ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+function ressemblance(a, b) {
+  const x = new Set(sansAccent(a).split(" ").filter(Boolean)), y = new Set(sansAccent(b).split(" ").filter(Boolean));
+  if (!x.size || !y.size) return 0;
+  let commun = 0; for (const m of x) if (y.has(m)) commun++;
+  return commun / Math.max(x.size, y.size);
+}
+async function photoReduite(f, max = 1280) {
+  const bmp = await createImageBitmap(f, { imageOrientation: "from-image" });
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.85));
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let s = ""; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return { image: btoa(s), mime: "image/jpeg", bmp };
+}
+
+$("#scan-photo").addEventListener("change", async (e) => {
+  const f = e.target.files?.[0]; if (!f) return;
+  e.target.value = "";
+  const statut = $("#scan-statut");
+  statut.textContent = "L'IA regarde ta photo… 🔍";
+  let photo;
+  try {
+    photo = await photoReduite(f);
+    const { data: r, error } = await sb.functions.invoke("reconnaitre", { body: { image: photo.image, mime: photo.mime } });
+    if (error || !r || r.erreur) throw new Error(r?.erreur ?? error?.message ?? "pas de réponse");
+    await appliquerReconnaissance(r);
+  } catch (err) {
+    statut.textContent = `L'IA n'a pas pu lire la photo (${err.message}). Lecture du numéro en secours…`;
+    if (photo) await lectureNumero(photo.bmp);
+  }
+});
+
+async function appliquerReconnaissance(r) {
+  const statut = $("#scan-statut");
+  const jeu = r.jeu === "onepiece" ? "onepiece" : "pokemon";
+  if (jeu !== etat.jeu) basculerJeu(jeu);
+  const resume = [r.nom, r.numero && (r.total ? `${r.numero}/${r.total}` : r.numero), r.extension].filter(Boolean).join(" · ");
+  statut.textContent = `Reconnu : ${resume || "objet incertain"}${r.confiance < 0.6 ? " (pas sûr, vérifie bien)" : ""}`;
+
+  if (r.categorie === "scelle") {
+    choisirType("scelle");
+    await remplirExtensions();
+    const cible = [r.code_extension, r.extension, r.nom].map(sansAccent).filter(Boolean);
+    const ext = etat.extensions.filter((x) => x.jeu === etat.jeu)
+      .map((x) => ({ x, score: Math.max(...cible.map((c) => Math.max(ressemblance(c, x.nom_fr), ressemblance(c, x.nom_en ?? ""), sansAccent(x.code) && c.includes(sansAccent(x.code)) ? 1 : 0))) }))
+      .sort((a, b) => b.score - a.score)[0];
+    if (ext?.score > 0.3) $("#sc-extension").value = String(ext.x.id);
+    const types = [...$("#sc-type").options].map((o) => o.value);
+    if (types.includes(r.type_scelle)) $("#sc-type").value = r.type_scelle;
+    nomScelle();
+    return;
+  }
+
+  choisirType("carte");
+  if (jeu === "onepiece") {
+    $("#op-numero").value = (r.numero ?? "").toUpperCase();
+    if (r.langue && [...$("#op-langue").options].some((o) => o.value === r.langue)) $("#op-langue").value = r.langue;
+    const liste = await chercherOP($("#op-numero").value);
+    const motif = { alternative: /(Alternate|Parallel|Full Art)/i, manga: /Manga/i, sp: /\(SP\)/i }[r.version];
+    const i = liste.findIndex((c) => motif ? motif.test(c.card_name) : !/\((Alternate|Parallel|Manga|SP|Full Art|Super|Wanted)/i.test(c.card_name));
+    if (i >= 0) $(`#op-resultats .resultat[data-i="${i}"]`)?.click();
+    else if (r.nom) $("#op-nom").value = r.nom;
+    return;
+  }
+
+  // Pokémon : par numéro d'abord, puis par nom ; la plus ressemblante en premier
+  let res = [];
+  if (r.numero) {
+    const brut = String(r.numero).toUpperCase().replace(/\s+/g, "");
+    res = await parNumero(/^(TG|GG|SV)/.test(brut) ? brut : brut.replace(/^0+(?=\d)/, ""), r.total ? Number(r.total) : null);
+  }
+  if (!res.length && r.nom) res = (await catalogue(`${TCG}/fr/cards?name=${encodeURIComponent(r.nom.split(" ")[0])}`)).filter((c) => c.image);
+  const classe = res.map((c) => ({ c, s: ressemblance(c.name, r.nom) + 0.5 * ressemblance(c.name, r.nom_en) }))
+    .sort((a, b) => b.s - a.s).map((x) => x.c).slice(0, 40);
+  $("#recherche-carte").value = r.numero ? `${r.numero}${r.total ? "/" + r.total : ""}` : (r.nom ?? "");
+  afficherResultats(classe);
+  if (classe.length) {
+    $("#carte-statut").textContent = "La première carte est la proposition de l'IA. Si ce n'est pas la bonne, touche la tienne.";
+    $("#carte-resultats .resultat")?.click();
+  } else $("#carte-statut").textContent = "Aucune carte correspondante dans le catalogue. Cherche par nom ci-dessous.";
+}
+
+function basculerJeu(jeu) {
+  etat.jeu = jeu;
+  document.querySelectorAll(".onglet").forEach((x) => x.toggleAttribute("aria-current", x.dataset.vue === jeu));
+  document.querySelector(`.onglet[data-vue="${jeu}"]`)?.setAttribute("aria-current", "page");
+  $("#ajout-titre").textContent = `Ajouter à la collection ${NOM_JEU[jeu]}`;
+  dessinerCollection();
+}
+
+// Secours sans IA : lecture du numéro en bas de la carte
 let tesseract = null;
 function chargerTesseract() {
   if (tesseract) return tesseract;
@@ -431,7 +526,6 @@ function chargerTesseract() {
   return tesseract;
 }
 function bandeBasse(bitmap, part) {
-  // garde le bas de la carte, agrandi et en niveaux de gris contrastés
   const sy = Math.round(bitmap.height * (1 - part)), sh = bitmap.height - sy, k = Math.max(1, 1600 / bitmap.width);
   const c = document.createElement("canvas");
   c.width = Math.round(bitmap.width * k); c.height = Math.round(sh * k);
@@ -440,12 +534,10 @@ function bandeBasse(bitmap, part) {
   g.drawImage(bitmap, 0, sy, bitmap.width, sh, 0, 0, c.width, c.height);
   return c;
 }
-$("#scan-photo").addEventListener("change", async (e) => {
-  const f = e.target.files?.[0]; if (!f) return;
-  const statut = $("#carte-statut");
-  statut.textContent = "Lecture du numéro de la carte… (la première fois peut prendre quelques secondes)";
+async function lectureNumero(bmp) {
+  const statut = $("#scan-statut");
   try {
-    const [T, bmp] = await Promise.all([chargerTesseract(), createImageBitmap(f, { imageOrientation: "from-image" })]);
+    const T = await chargerTesseract();
     const w = await T.createWorker("eng");
     await w.setParameters({ tessedit_char_whitelist: "0123456789/TGSVHPMER " });
     let trouve = null;
@@ -455,18 +547,19 @@ $("#scan-photo").addEventListener("change", async (e) => {
       if (trouve) break;
     }
     await w.terminate();
-    e.target.value = "";
-    if (!trouve) { statut.textContent = "Numéro illisible. Réessaie avec plus de lumière, la carte bien à plat, ou tape le numéro (ex. 144/131)."; return; }
+    if (!trouve) { statut.textContent = "Photo illisible. Réessaie avec plus de lumière, ou tape le numéro (ex. 144/131)."; return; }
     const texte = `${trouve[1] ?? ""}${trouve[2]}/${trouve[3]}`;
+    choisirType("carte");
     $("#recherche-carte").value = texte;
-    statut.textContent = `Numéro lu : ${texte}. Recherche…`;
+    statut.textContent = `Numéro lu : ${texte}.`;
     await chercherCartes(texte);
   } catch (err) { statut.textContent = `Scanner indisponible : ${err.message}. Tape le numéro à la place.`; }
-});
+}
 
 // --- One Piece : trouver l'image et le nom par le numéro ---
-$("#op-chercher").addEventListener("click", async () => {
-  const n = $("#op-numero").value.trim().toUpperCase(); if (!n) return;
+$("#op-chercher").addEventListener("click", () => chercherOP($("#op-numero").value));
+async function chercherOP(saisie) {
+  const n = saisie.trim().toUpperCase(); if (!n) return [];
   const statut = $("#op-statut");
   statut.textContent = "Recherche…";
   const type = n.startsWith("ST") ? "decks" : n.startsWith("P-") ? "promos" : "sets";
@@ -476,8 +569,9 @@ $("#op-chercher").addEventListener("click", async () => {
     $("#op-resultats").innerHTML = liste.map((c, i) => `<button class="resultat" data-i="${i}"><img src="${esc(c.card_image)}" alt="" loading="lazy"><span>${esc(c.card_name)}</span></button>`).join("");
     ajout.opListe = liste;
     statut.textContent = liste.length ? "Touche la bonne version (normale, alternative, manga…)." : "Aucune carte trouvée pour ce numéro. Remplis le nom à la main.";
-  } catch (err) { statut.textContent = `Recherche impossible : ${err.message}. Remplis le nom à la main.`; }
-});
+    return liste;
+  } catch (err) { statut.textContent = `Recherche impossible : ${err.message}. Remplis le nom à la main.`; return []; }
+}
 $("#op-resultats").addEventListener("click", (e) => {
   const b = e.target.closest(".resultat"); if (!b) return;
   const c = ajout.opListe[Number(b.dataset.i)];
