@@ -1,0 +1,226 @@
+/* PokeVibes — le classeur de L'Équipage
+   Couleurs : carton du classeur, pochettes plastique, encre, jaune « score »
+   Les animations arcade viendront s'ajouter ici (section « À toi de jouer » en bas). */
+:root {
+  --carton: #E9ECF2;
+  --pochette: #FFFFFF;
+  --encre: #1C2140;
+  --encre-douce: #5B6182;
+  --lisere: #C9CFDC;
+  --score: #F2B705;
+  --gain: #1F8F5F;
+  --perte: #D64545;
+  --couverture: #1C2140;
+  --rayon-pochette: 10px;
+  --ombre-pochette: 0 1px 0 #fff inset, 0 2px 6px rgba(28, 33, 64, .08);
+  --titre: "Bricolage Grotesque", system-ui, sans-serif;
+  --texte: "Atkinson Hyperlegible", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --carton: #151935;
+    --pochette: #1F2447;
+    --encre: #EEF0F8;
+    --encre-douce: #A6ABC9;
+    --lisere: #343A66;
+    --couverture: #0F1230;
+    --ombre-pochette: 0 1px 0 rgba(255,255,255,.04) inset, 0 2px 8px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--carton);
+  color: var(--encre);
+  font: 16px/1.5 var(--texte);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--score); outline-offset: 2px; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+
+/* ---------- Connexion ---------- */
+.connexion { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
+.connexion-carte {
+  width: min(400px, 100%);
+  background: var(--pochette);
+  border: 1px solid var(--lisere);
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: var(--ombre-pochette);
+}
+.connexion-carte h1 { font: 800 2rem/1.1 var(--titre); margin: 12px 0 6px; }
+.connexion-carte > p { color: var(--encre-douce); margin: 0 0 20px; }
+.connexion-carte label { display: block; font-weight: 700; margin: 14px 0 6px; }
+.facultatif { font-weight: 400; color: var(--encre-douce); }
+.connexion-carte input {
+  width: 100%; padding: 12px; border-radius: 8px;
+  border: 1px solid var(--lisere); background: var(--carton);
+}
+.connexion-carte button {
+  margin-top: 20px; width: 100%; padding: 13px; border: 0; border-radius: 8px;
+  background: var(--encre); color: var(--pochette); font-weight: 700; cursor: pointer;
+}
+.message { min-height: 1.5em; margin: 16px 0 0; color: var(--encre-douce); }
+
+/* ---------- Barre ---------- */
+.barre {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top));
+  background: var(--couverture); color: #fff;
+}
+.marque { display: flex; align-items: center; gap: 8px; font: 800 1.15rem var(--titre); }
+.marque img { border-radius: 6px; }
+.onglets { display: flex; gap: 4px; margin-left: auto; }
+@media (max-width: 420px) { .marque span, .marque { font-size: 1rem; } .onglet { padding: 8px 10px; } }
+.onglet {
+  border: 0; background: transparent; color: #C9CDEA; padding: 8px 12px; white-space: nowrap;
+  border-radius: 999px; cursor: pointer; font-weight: 700;
+}
+.onglet[aria-current="page"] { background: var(--score); color: var(--couverture); }
+.lien-discret { border: 0; background: none; color: var(--encre-douce); cursor: pointer; text-decoration: underline; padding: 8px 4px; }
+.pied { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--encre-douce); font-size: .85rem; }
+
+/* ---------- Couverture du classeur : la valeur ---------- */
+.vue { max-width: 1100px; margin: 0 auto; padding: 0 16px 48px; }
+.couverture {
+  margin: 0 -16px; padding: 20px 16px 22px;
+  background: var(--couverture); color: #fff;
+  border-radius: 0 0 22px 22px;
+}
+.couverture-titre { margin: 0; color: #C9CDEA; }
+.couverture-titre strong { color: #fff; }
+.score {
+  margin: 2px 0 10px;
+  font: 800 clamp(2.6rem, 11vw, 4.5rem)/1 var(--titre);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+  color: var(--score);
+}
+.jauge { height: 8px; border-radius: 99px; background: rgba(255,255,255,.14); overflow: hidden; max-width: 520px; }
+.jauge span { display: block; height: 100%; width: 0; background: #8E95C4; border-radius: 99px; transition: width .8s ease; }
+.chiffres { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 14px 0 0; }
+.chiffres div { min-width: 90px; }
+.chiffres dt { color: #C9CDEA; font-size: .85rem; }
+.chiffres dd { margin: 0; font: 700 1.25rem var(--titre); font-variant-numeric: tabular-nums; }
+.maj { margin: 12px 0 0; font-size: .85rem; color: #A6ABC9; }
+.positif { color: #5FD39B; }
+.negatif { color: #FF8A8A; }
+
+/* ---------- Filtres ---------- */
+.filtres { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 18px 0 8px; }
+.puces { display: flex; gap: 6px; flex-wrap: wrap; }
+.puces button {
+  border: 1px solid var(--lisere); background: var(--pochette);
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+}
+.puces button[aria-pressed="true"] { background: var(--encre); color: var(--pochette); border-color: var(--encre); }
+.ligne-recherche { display: flex; gap: 8px; }
+.ligne-recherche input { flex: 1; min-width: 0; width: 100%; }
+.ligne-recherche select { flex: 0 0 auto; max-width: 45%; }
+.ligne-recherche input, .ligne-recherche select {
+  padding: 10px 12px; border-radius: 8px; border: 1px solid var(--lisere); background: var(--pochette);
+}
+
+/* ---------- Classeur : une page par extension, des pochettes ---------- */
+.page { margin-top: 26px; }
+.page-titre { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; }
+.page-titre h3 { font: 700 1.3rem/1.2 var(--titre); margin: 0; min-width: 0; }
+.page-titre .somme, .page-titre .code { flex: none; }
+.page-titre .code { color: var(--encre-douce); font-weight: 700; }
+.page-titre .somme { margin-left: auto; font: 700 1rem var(--titre); font-variant-numeric: tabular-nums; }
+
+.pochettes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 420px) { .pochettes { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
+
+.pochette {
+  position: relative;
+  display: flex; flex-direction: column;
+  text-align: left; cursor: pointer;
+  background: var(--pochette);
+  border: 1px solid var(--lisere);
+  border-radius: var(--rayon-pochette);
+  padding: 8px;
+  box-shadow: var(--ombre-pochette);
+}
+/* le reflet plastique de la pochette */
+.pochette::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 28%);
+  mix-blend-mode: soft-light;
+}
+.visuel {
+  aspect-ratio: 63 / 88; border-radius: 6px; overflow: hidden;
+  background: var(--carton); display: grid; place-items: center;
+}
+.pochette.scelle .visuel { aspect-ratio: 1 / 1; }
+.visuel img { width: 100%; height: 100%; object-fit: contain; }
+.visuel .sans-image {
+  font: 800 1.1rem var(--titre); color: var(--encre-douce); text-align: center; padding: 8px;
+}
+.pochette .nom { font-weight: 700; line-height: 1.25; margin: 8px 0 2px; font-size: .95rem; }
+.pochette .infos { color: var(--encre-douce); font-size: .8rem; }
+.pochette .prix { margin-top: auto; padding-top: 6px; display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.pochette .prix strong { font: 700 1.05rem var(--titre); font-variant-numeric: tabular-nums; }
+.pochette .prix .evo { font-size: .8rem; font-weight: 700; }
+.evo.positif { color: var(--gain); }
+.evo.negatif { color: var(--perte); }
+.quantite {
+  position: absolute; top: 4px; right: 4px; z-index: 1;
+  background: var(--encre); color: var(--pochette);
+  font: 700 .8rem var(--titre); padding: 2px 8px; border-radius: 99px;
+}
+.defaut { color: var(--perte); font-weight: 700; }
+
+.vide { margin: 40px 0; text-align: center; color: var(--encre-douce); }
+
+/* ---------- Équipage ---------- */
+.titre-vue { font: 800 1.8rem var(--titre); margin: 24px 0 4px; }
+.intro-vue { margin: 0 0 16px; color: var(--encre-douce); }
+.membres { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.membres button {
+  width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 14px 16px; border-radius: 12px; cursor: pointer; text-align: left;
+  background: var(--pochette); border: 1px solid var(--lisere);
+}
+.membres button[aria-pressed="true"] { border-color: var(--encre); box-shadow: 0 0 0 2px var(--encre) inset; }
+.membres .pseudo { font: 700 1.1rem var(--titre); }
+.membres .valeur { font: 800 1.2rem var(--titre); font-variant-numeric: tabular-nums; }
+
+/* ---------- Fiche ---------- */
+.fiche {
+  width: min(520px, 100vw); max-height: 92dvh; margin: auto auto 0; padding: 20px 18px 28px;
+  border: 0; border-radius: 20px 20px 0 0; background: var(--pochette); color: var(--encre);
+}
+@media (min-width: 700px) { .fiche { margin: auto; border-radius: 20px; } }
+.fiche::backdrop { background: rgba(15, 18, 48, .55); }
+.fermer { float: right; border: 0; background: var(--carton); width: 36px; height: 36px; border-radius: 50%; font-size: 1.3rem; cursor: pointer; }
+.fiche-haut { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; }
+.fiche-haut .visuel { width: 120px; }
+.fiche h2 { font: 800 1.4rem/1.15 var(--titre); margin: 0 0 6px; }
+.fiche dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 18px 0 0; }
+.fiche dt { color: var(--encre-douce); }
+.fiche dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.historique { margin-top: 18px; }
+.historique svg { width: 100%; height: 70px; display: block; }
+.historique p { margin: 4px 0 0; font-size: .85rem; color: var(--encre-douce); }
+.fiche a { color: inherit; }
+.alerte { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: rgba(242,183,5,.18); font-size: .9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ---------- À toi de jouer : animations arcade ----------
+   Exemple de point d'accroche : .score (la valeur), .pochette (les cartes),
+   .onglet[aria-current] (l'onglet actif). */

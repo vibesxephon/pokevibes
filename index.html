@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PokeVibes</title>
+<meta name="description" content="Collection TCG de L'Équipage : cartes et scellé, prix Cardmarket FR.">
+<meta name="theme-color" content="#1C2140">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Écran de connexion -->
+<main id="ecran-connexion" class="connexion" hidden>
+  <div class="connexion-carte">
+    <img src="icons/icon-192.png" alt="" width="72" height="72">
+    <h1>PokeVibes</h1>
+    <p>Le classeur de L'Équipage : ta collection et sa valeur au prix Cardmarket FR.</p>
+    <form id="form-connexion">
+      <label for="email">Ton e-mail</label>
+      <input id="email" type="email" autocomplete="email" required placeholder="prenom@exemple.fr">
+      <label for="pseudo">Ton pseudo <span class="facultatif">(première connexion seulement)</span></label>
+      <input id="pseudo" type="text" autocomplete="nickname" maxlength="24" placeholder="ex. Clem">
+      <button type="submit">Recevoir le lien de connexion</button>
+    </form>
+    <p id="connexion-message" class="message" role="status"></p>
+  </div>
+</main>
+
+<!-- Application -->
+<div id="app" hidden>
+  <header class="barre">
+    <span class="marque"><img src="icons/icon-192.png" alt="" width="28" height="28">PokeVibes</span>
+    <nav class="onglets" aria-label="Sections">
+      <button class="onglet" data-vue="collection" aria-current="page">Ma collection</button>
+      <button class="onglet" data-vue="equipage">L'Équipage</button>
+    </nav>
+  </header>
+
+  <!-- Ma collection -->
+  <section id="vue-collection" class="vue">
+    <div class="couverture">
+      <p class="couverture-titre">Valeur de la collection de <strong id="mon-pseudo">…</strong></p>
+      <p class="score" id="total-valeur">0 €</p>
+      <div class="jauge" aria-hidden="true"><span id="jauge-achat"></span></div>
+      <dl class="chiffres">
+        <div><dt>Payé (scellé)</dt><dd id="total-achat">…</dd></div>
+        <div><dt>Plus-value</dt><dd id="total-gain">…</dd></div>
+        <div><dt>Objets</dt><dd id="total-objets">…</dd></div>
+      </dl>
+      <p class="maj" id="maj-prix"></p>
+    </div>
+
+    <div class="filtres" role="group" aria-label="Filtres">
+      <div class="puces" data-filtre="jeu">
+        <button aria-pressed="true" data-val="">Tout</button>
+        <button aria-pressed="false" data-val="pokemon">Pokémon</button>
+        <button aria-pressed="false" data-val="onepiece">One Piece</button>
+      </div>
+      <div class="puces" data-filtre="categorie">
+        <button aria-pressed="true" data-val="">Cartes et scellé</button>
+        <button aria-pressed="false" data-val="carte">Cartes</button>
+        <button aria-pressed="false" data-val="scelle">Scellé</button>
+      </div>
+      <div class="ligne-recherche">
+        <input id="recherche" type="search" placeholder="Chercher une carte, un produit…" aria-label="Chercher">
+        <select id="tri" aria-label="Trier">
+          <option value="extension">Par extension</option>
+          <option value="valeur">Par valeur</option>
+          <option value="gain">Par plus-value</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="classeur" class="classeur" aria-live="polite"></div>
+  </section>
+
+  <!-- L'Équipage -->
+  <section id="vue-equipage" class="vue" hidden>
+    <h2 class="titre-vue">L'Équipage</h2>
+    <p class="intro-vue">Les collections de chacun, sans les prix d'achat.</p>
+    <ul id="membres" class="membres"></ul>
+    <div id="vitrine" class="classeur"></div>
+  </section>
+
+  <footer class="pied">
+    <span>Prix : Cardmarket FR via Pokemon TCG API, relevés chaque nuit.</span>
+    <button id="deconnexion" class="lien-discret">Se déconnecter</button>
+  </footer>
+</div>
+
+<!-- Fiche détaillée -->
+<dialog id="fiche" class="fiche">
+  <form method="dialog"><button class="fermer" aria-label="Fermer">×</button></form>
+  <div id="fiche-contenu"></div>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
