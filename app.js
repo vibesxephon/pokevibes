@@ -1511,9 +1511,12 @@ $("#bouton-webcam").addEventListener("click", async () => {
     $("#webcam-photo").focus();
   } catch (err) {
     arreterWebcam();
+    console.warn("Webcam indisponible :", err?.name, err?.message);
     statut.textContent = err?.name === "NotAllowedError" || err?.name === "SecurityError"
       ? "Webcam refusée. Pas de souci : glisse une photo de la carte ici, ou choisis un fichier."
-      : "Aucune webcam disponible. Glisse une photo de la carte ici, ou choisis un fichier.";
+      : err?.name === "NotReadableError" || err?.name === "AbortError"
+        ? "La webcam est déjà utilisée par une autre application. Ferme-la et réessaie, ou glisse une photo de la carte ici."
+        : "Aucune webcam disponible. Glisse une photo de la carte ici, ou choisis un fichier.";
   }
 });
 $("#webcam-photo").addEventListener("click", async () => {
