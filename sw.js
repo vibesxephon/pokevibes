@@ -1,6 +1,6 @@
 // Service worker : garde l'interface en cache pour un démarrage rapide.
 // Les données (Supabase) passent toujours par le réseau pour rester à jour.
-const VERSION = "pokevibes-v7";
+const VERSION = "pokevibes-v8";
 const COQUILLE = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/embleme-112.png", "icons/favicon-32.png"];
 
 self.addEventListener("install", (e) => {

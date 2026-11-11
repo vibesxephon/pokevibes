@@ -189,12 +189,14 @@ $("#tri").addEventListener("change", (e) => { etat.tri = e.target.value; dessine
 
 /* ================= Navigation : barre du bas et choix du jeu ================= */
 function montrerVue(v) {
-  const equipage = v === "equipage";
   document.querySelectorAll(".nav-item").forEach((x) => x.toggleAttribute("aria-current", x.dataset.vue === v));
   document.querySelector(`.nav-item[data-vue="${v}"]`)?.setAttribute("aria-current", "page");
-  $("#vue-collection").hidden = equipage;
-  $("#vue-equipage").hidden = !equipage;
-  if (equipage) chargerEquipage(); else dessinerCollection();
+  $("#vue-collection").hidden = v !== "collection";
+  $("#vue-equipage").hidden = v !== "equipage";
+  $("#vue-classeur").hidden = v !== "classeur";
+  if (v === "equipage") chargerEquipage();
+  else if (v === "classeur") chargerClasseur().then(() => (etat.setOuvert ? ouvrirSet(etat.setOuvert) : dessinerClasseurListe()));
+  else dessinerCollection();
   scrollTo({ top: 0 });
 }
 document.querySelectorAll(".nav-item").forEach((o) => o.addEventListener("click", () => montrerVue(o.dataset.vue)));
@@ -423,6 +425,9 @@ function choisirType(t) {
   $("#bloc-etat").hidden = !carte;
   $("#ajout-final").hidden = carte && poke; // la carte Pokémon s'affiche une fois choisie
   $("#ajout-choix").innerHTML = "";
+  $("#bloc-destination").hidden = true;
+  ajout.destManuelle = false;
+  marquerDestination("collection", "");
 }
 
 async function remplirExtensions() {
@@ -520,6 +525,10 @@ $("#carte-resultats").addEventListener("click", async (e) => {
         ? `Prix Cardmarket FR : <strong>${euro(p.prix)}</strong> <span class="infos">(relevé du ${new Date(p.le).toLocaleDateString("fr-FR")})</span>`
         : `Prix Cardmarket FR : <strong class="inconnu">?</strong> <span class="infos">relevé la nuit prochaine</span>`;
     }).catch(() => { const el = $("#prix-choix"); if (el) el.innerHTML = `Prix Cardmarket FR : <strong class="inconnu">?</strong>`; });
+    $("#bloc-destination").hidden = false;
+    ajout.destManuelle = false;
+    proposerDestination(fr.rarity, null);
+    prixConnus([fr.id]).then((m) => { const p = m.get(fr.id); if (p) proposerDestination(fr.rarity, Number(p.prix)); }).catch(() => {});
     $("#ajout-final").hidden = false;
     $("#carte-statut").textContent = "";
     $("#ajout-final").scrollIntoView({ behavior: calme ? "auto" : "smooth", block: "nearest" });
@@ -736,6 +745,15 @@ $("#bouton-valider").addEventListener("click", async () => {
       p_type: demi ? "Display" : type, p_variante: demi ? "Demi (18 boosters)" : $("#sc-variante").value,
       p_nom: $("#sc-nom").value.trim(), p_quantite: q, p_prix_achat: prix, p_defaut: $("#sc-defaut").checked,
     });
+  } else if (etat.jeu === "pokemon" && ajout.destination === "classeur") {
+    if (!ajout.choix) { msg.textContent = "Choisis d'abord ta carte dans la liste."; return; }
+    r = await sb.rpc("classeur_modifier", { p_tcgdex_id: ajout.choix.tcgdex_id, p_delta: q });
+    if (r.error) { msg.textContent = `Ajout impossible : ${r.error.message}`; return; }
+    msg.textContent = "Rangée dans le Classeur ✅";
+    await chargerClasseur();
+    if (!$("#vue-classeur").hidden) etat.setOuvert ? ouvrirSet(etat.setOuvert) : dessinerClasseurListe();
+    setTimeout(() => $("#ajout").close(), 900);
+    return;
   } else if (etat.jeu === "pokemon") {
     if (!ajout.choix) { msg.textContent = "Choisis d'abord ta carte dans la liste."; return; }
     const c = ajout.choix;
@@ -756,6 +774,124 @@ $("#bouton-valider").addEventListener("click", async () => {
   msg.textContent = "Ajouté ✅ Le prix s'affichera après le relevé de cette nuit.";
   await chargerCollection();
   setTimeout(() => $("#ajout").close(), 900);
+});
+
+/* ================= Classeur : remplir ses extensions =================
+   Collection = la valeur (ex, promos, illustrations… ou plus de 2 €).
+   Classeur = toutes les cartes d'une extension, communes comprises, pour la compléter. */
+const RARETES_COMMUNES = /^(commune|peu commune|rare|holo rare|rare holo|sans rareté|aucune)$/i;
+const SEUIL_COLLECTION = 2; // €
+etat.classeur = new Map(); etat.setOuvert = null; etat.csFiltre = ""; etat.prixSet = new Map();
+
+function marquerDestination(d, aide) {
+  ajout.destination = d;
+  $("#aj-destination").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.val === d)));
+  if (aide !== undefined) $("#aj-destination-aide").textContent = aide;
+  const cl = d === "classeur";
+  $("#aj-prix").closest("div").hidden = cl;
+  $("#bloc-etat").hidden = cl || ajout.type !== "carte";
+}
+function proposerDestination(rarete, prix) {
+  if (ajout.destManuelle) return;
+  const commune = RARETES_COMMUNES.test(String(rarete ?? "").trim());
+  if (!commune) return marquerDestination("collection", "Carte rare (ex, promo, illustration…) : rangée dans ta Collection.");
+  if (prix >= SEUIL_COLLECTION) return marquerDestination("collection", `Carte commune, mais elle vaut plus de ${SEUIL_COLLECTION} € : rangée dans ta Collection.`);
+  marquerDestination("classeur", "Carte commune à petit prix : rangée dans ton Classeur.");
+}
+$("#aj-destination").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  ajout.destManuelle = true;
+  marquerDestination(b.dataset.val, b.dataset.val === "classeur" ? "Tu la ranges dans ton Classeur." : "Tu la ranges dans ta Collection.");
+});
+
+async function chargerClasseur() {
+  if (!etat.moi) return;
+  const { data } = await sb.from("classeur").select("tcgdex_id, set_id, quantite").eq("membre_id", etat.moi.id);
+  etat.classeur = new Map((data ?? []).map((x) => [x.tcgdex_id, x]));
+}
+const rangNum = (c) => { const n = parseInt(c.localId, 10); return isNaN(n) ? 100000 : n; };
+function compteSet(idx, sid) {
+  const set = idx.sets.get(sid);
+  const cartes = idx.cartes.filter((c) => c.set?.id === sid).sort((a, b) => rangNum(a) - rangNum(b) || String(a.localId).localeCompare(String(b.localId)));
+  const off = set?.total || cartes.length;
+  let normales = 0, secretes = 0, nbSec = 0;
+  for (const c of cartes) {
+    const n = parseInt(c.localId, 10), sec = !(n >= 1 && n <= off) || !/^\d+$/.test(String(c.localId));
+    if (sec) nbSec++;
+    if (etat.classeur.has(c.id)) sec ? secretes++ : normales++;
+  }
+  return { set, cartes, off, normales, secretes, nbSec, pct: off ? Math.round((normales / off) * 100) : 0 };
+}
+function ligneSet(idx, sid) {
+  const k = compteSet(idx, sid);
+  return `<li><button type="button" class="set" data-set="${esc(sid)}">
+    <span class="set-nom">${esc(k.set?.nom ?? sid)}</span>
+    <span class="set-compte">${k.normales}/${k.off}${k.secretes ? ` <small>+${k.secretes} secrètes</small>` : ""}</span>
+    <span class="barre-prog" aria-hidden="true"><span style="width:${k.pct}%"></span></span></button></li>`;
+}
+async function dessinerClasseurListe() {
+  etat.setOuvert = null;
+  $("#classeur-set").hidden = true; $("#classeur-liste").hidden = false;
+  let idx;
+  try { idx = await chargerIndex(); }
+  catch { $("#classeur-sets").innerHTML = `<li class="vide">Le catalogue des cartes n'a pas pu être chargé. Réessaie dans un instant.</li>`; return; }
+  const sids = [...new Set([...etat.classeur.values()].map((x) => x.set_id))]
+    .sort((a, b) => (idx.sets.get(b)?.ordre ?? 0) - (idx.sets.get(a)?.ordre ?? 0));
+  $("#classeur-sets").innerHTML = sids.length ? sids.map((sid) => ligneSet(idx, sid)).join("")
+    : `<li class="vide">Ton classeur est vide. Ouvre une extension ci-dessus, ou scanne une carte et range-la dans le Classeur.</li>`;
+}
+$("#classeur-recherche").addEventListener("input", async (e) => {
+  const q = sansAccent(e.target.value);
+  if (q.length < 2) { $("#classeur-trouves").innerHTML = ""; return; }
+  const idx = await chargerIndex().catch(() => null); if (!idx) return;
+  const sets = [...idx.sets.values()].filter((x) => sansAccent(x.nom).includes(q)).sort((a, b) => b.ordre - a.ordre).slice(0, 12);
+  $("#classeur-trouves").innerHTML = sets.length ? sets.map((x) => ligneSet(idx, x.id)).join("") : `<li class="vide">Aucune extension ne correspond.</li>`;
+});
+document.querySelector("#vue-classeur").addEventListener("click", (e) => {
+  const b = e.target.closest(".set"); if (b) ouvrirSet(b.dataset.set);
+});
+$("#classeur-retour").addEventListener("click", () => { $("#classeur-recherche").value = ""; $("#classeur-trouves").innerHTML = ""; dessinerClasseurListe(); scrollTo({ top: 0 }); });
+$("#cs-filtre").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  etat.csFiltre = b.dataset.val;
+  $("#cs-filtre").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  dessinerSet(await chargerIndex());
+});
+
+async function ouvrirSet(sid) {
+  const idx = await chargerIndex();
+  if (etat.setOuvert !== sid) { etat.prixSet = new Map(); etat.csFiltre = ""; $("#cs-filtre").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.val === ""))); }
+  etat.setOuvert = sid;
+  $("#classeur-liste").hidden = true; $("#classeur-set").hidden = false;
+  dessinerSet(idx);
+  const ids = idx.cartes.filter((c) => c.set?.id === sid).map((c) => c.id);
+  prixConnus(ids).then((m) => { if (etat.setOuvert === sid) { etat.prixSet = m; dessinerSet(idx); } }).catch(() => {});
+}
+function dessinerSet(idx) {
+  const k = compteSet(idx, etat.setOuvert);
+  $("#cs-titre").textContent = k.set?.nom ?? etat.setOuvert;
+  $("#cs-barre").style.width = `${k.pct}%`;
+  $("#cs-compte").textContent = `${k.normales}/${k.off} cartes (${k.pct} %)${k.nbSec ? ` · secrètes : ${k.secretes}/${k.nbSec}` : ""}`;
+  const prix = (c) => Number(etat.prixSet.get(c.id)?.prix ?? -1);
+  let l = k.cartes;
+  if (etat.csFiltre === "manque") l = l.filter((c) => !etat.classeur.has(c.id)).sort((a, b) => prix(b) - prix(a));
+  if (etat.csFiltre === "ai") l = l.filter((c) => etat.classeur.has(c.id));
+  $("#cs-cartes").innerHTML = l.length ? l.map((c) => {
+    const x = etat.classeur.get(c.id), p = etat.prixSet.get(c.id);
+    return `<button type="button" class="cc ${x ? "ai" : "manque"}" data-id="${esc(c.id)}" aria-pressed="${!!x}" aria-label="${esc(c.name)} ${esc(c.localId)}">
+      <span class="cc-img">${c.image ? `<img loading="lazy" src="${esc(c.image)}/low.webp" alt="">` : `<span class="cc-sans">${esc(c.name)}</span>`}</span>
+      ${x && x.quantite > 1 ? `<span class="quantite">×${x.quantite}</span>` : ""}
+      <span class="cc-bas"><span>${esc(c.localId)}</span><span>${p ? euro(p.prix) : ""}</span></span></button>`;
+  }).join("") : `<p class="vide">${etat.csFiltre === "manque" ? "Il ne te manque aucune carte. Bravo !" : "Aucune carte cochée pour l'instant."}</p>`;
+}
+$("#cs-cartes").addEventListener("click", async (e) => {
+  const b = e.target.closest(".cc"); if (!b) return;
+  const id = b.dataset.id, x = etat.classeur.get(id), delta = x ? -x.quantite : 1;
+  // affichage immédiat, puis enregistrement
+  if (x) etat.classeur.delete(id); else etat.classeur.set(id, { tcgdex_id: id, set_id: etat.setOuvert, quantite: 1 });
+  const idx = await chargerIndex(); dessinerSet(idx);
+  const { error } = await sb.rpc("classeur_modifier", { p_tcgdex_id: id, p_delta: delta });
+  if (error) { await chargerClasseur(); dessinerSet(idx); $("#cs-compte").textContent = `Pas enregistré : ${error.message}. Réessaie.`; }
 });
 
 /* ================= Installation (PWA) ================= */
