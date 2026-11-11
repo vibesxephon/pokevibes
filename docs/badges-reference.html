@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PokeVibes — référence des badges (style validé par Clem le 11/11/2026)</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/*
+  STYLE VALIDÉ : badges « autocollant » — liseré blanc épais (stroke #fff 7, paint-order stroke),
+  contour encre #1C1C1C 2.2, aplats de couleurs vives, un reflet blanc semi-transparent (opacity .55),
+  silhouette DIFFÉRENTE pour chaque badge, qui illustre son sens (loupe = scan, flèche = hausse…).
+  Dessins 100 % originaux : ne JAMAIS reprendre ni imiter les badges d'arène des jeux Pokémon.
+  Rareté lisible à la couleur : bronze #C98A4B, argent #C3C7CF, holo (jaune #F2C200 / reflets
+  #A8F0FF #E3B6FF #FFF2A8, reflet holo animé possible), secret (nuit #3B3F8F + jaune), verrouillé gris #5F5F59 « ? ».
+  Animation de déblocage (toucher un badge ci-dessous) : de scale .3, rotation -25°, flou 6px, transparent
+  -> scale 1.18 + rotation 4° (à 65 %) -> taille normale. 1100 ms, cubic-bezier(.16,1,.3,1).
+  Seuls 8 badges sont dessinés ici : dessiner les autres dans exactement le même style.
+*/
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#d9d9d4;font-family:'Space Grotesk',sans-serif}
+.pl{background:#1C1C1C;border-radius:16px;padding:20px 14px;display:grid;grid-template-columns:repeat(4,80px);gap:18px 8px}
+.it{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.it svg{width:64px;height:64px;overflow:visible}
+.lb{font:500 12px 'Space Grotesk',sans-serif;color:#F6F6F4;text-align:center;line-height:1.25}
+.lb span{color:#A8A8A0;font-weight:400}
+p{font-size:13px;color:#5F5F59}
+</style>
+</head>
+<body>
+<div class="pl" id="pl"></div>
+<p>Touche un badge pour voir l'animation de déblocage.</p>
+<script>
+const O='stroke="#fff" stroke-width="7" stroke-linejoin="round" paint-order="stroke"';
+const K='stroke="#1C1C1C" stroke-width="2.2" stroke-linejoin="round"';
+const G=(d)=>`<path d="${d}" fill="#fff" opacity=".55"/>`;
+const B=[
+["premier-scan","Premier scan","Bronze",`<g ${O}><path d="M26 6a20 20 0 1 1 0 40a20 20 0 1 1 0-40z" fill="#C98A4B"/><path d="M40 40l14 14" stroke="#C98A4B" stroke-width="10" stroke-linecap="round"/></g><path d="M26 6a20 20 0 1 1 0 40a20 20 0 1 1 0-40z" fill="#C98A4B" ${K}/><path d="M26 15a11 11 0 1 1 0 22a11 11 0 1 1 0-22z" fill="#8FD3F0" ${K}/><path d="M42 42l11 11" stroke="#1C1C1C" stroke-width="8" stroke-linecap="round"/><path d="M42 42l11 11" stroke="#C98A4B" stroke-width="4.5" stroke-linecap="round"/>${G('M20 20q4-5 10-4q-6 3-8 8z')}`],
+["bon-flair","Bon flair","Argent",`<path d="M30 4L56 30H42V56H18V30H4Z" fill="#C3C7CF" ${O}/><path d="M30 4L56 30H42V56H18V30H4Z" fill="#C3C7CF" ${K}/><path d="M30 14L45 30H36V48H24V30H15Z" fill="#7BD88F" ${K}/>${G('M22 30l8-9l3 3l-7 7z')}`],
+["sniper","Sniper","Argent",`<circle cx="30" cy="30" r="25" fill="#C3C7CF" ${O}/><circle cx="30" cy="30" r="25" fill="#C3C7CF" ${K}/><circle cx="30" cy="30" r="16" fill="#E8574A" ${K}/><circle cx="30" cy="30" r="7" fill="#F6F6F4" ${K}/><path d="M30 2v12M30 46v12M2 30h12M46 30h12" stroke="#1C1C1C" stroke-width="2.5"/>${G('M14 20q6-9 16-9q-10 4-13 12z')}`],
+["mains-de-diamant","Mains de diamant","Holo",`<path d="M14 6H46L58 22L30 56L2 22Z" fill="#A8F0FF" ${O}/><path d="M14 6H46L58 22L30 56L2 22Z" fill="#A8F0FF" ${K}/><path d="M2 22H58M14 6L22 22L30 56L38 22L46 6M22 22L30 6L38 22" fill="none" ${K}/><path d="M2 22L22 22L30 56Z" fill="#E3B6FF" opacity=".7"/><path d="M38 22H58L30 56Z" fill="#FFF2A8" opacity=".7"/>${G('M16 9h10l-6 11z')}`],
+["master-set","Master set","Holo",`<path d="M4 12q13-6 26 2q13-8 26-2v40q-13-6-26 2q-13-8-26-2z" fill="#F2C200" ${O}/><path d="M4 12q13-6 26 2q13-8 26-2v40q-13-6-26 2q-13-8-26-2z" fill="#F2C200" ${K}/><path d="M30 14v40" ${K}/><rect x="9" y="18" width="7" height="10" rx="1.5" fill="#E3B6FF" ${K}/><rect x="18" y="18" width="7" height="10" rx="1.5" fill="#A8F0FF" ${K}/><rect x="35" y="18" width="7" height="10" rx="1.5" fill="#7BD88F" ${K}/><rect x="44" y="18" width="7" height="10" rx="1.5" fill="#E8574A" ${K}/>${G('M8 34q8-4 16 0v4q-8-3-16 0z')}`],
+["tresor","Trésor","Holo",`<circle cx="30" cy="30" r="25" fill="#F2C200" ${O}/><circle cx="30" cy="30" r="25" fill="#F2C200" ${K}/><circle cx="30" cy="30" r="18" fill="none" ${K} stroke-dasharray="3 4"/><text x="30" y="38" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="22" fill="#1C1C1C">€</text>${G('M12 22q5-10 16-11q-10 5-12 14z')}`],
+["oiseau-de-nuit","Oiseau de nuit","Secret",`<path d="M38 4a26 26 0 1 0 18 34a20 20 0 1 1-18-34z" fill="#3B3F8F" ${O}/><path d="M38 4a26 26 0 1 0 18 34a20 20 0 1 1-18-34z" fill="#3B3F8F" ${K}/><path d="M46 12l2 5l5 2l-5 2l-2 5l-2-5l-5-2l5-2z" fill="#F2C200" ${K} stroke-width="1.5"/>${G('M14 22q4-10 14-13q-8 6-10 15z')}`],
+["verrouille","???","Verrouillé",`<rect x="6" y="6" width="48" height="48" rx="14" fill="#5F5F59" ${O}/><rect x="6" y="6" width="48" height="48" rx="14" fill="#5F5F59" ${K}/><text x="30" y="40" text-anchor="middle" font-family="Space Grotesk" font-weight="700" font-size="26" fill="#A8A8A0">?</text>`]];
+document.getElementById('pl').innerHTML=B.map(([id,n,t,s])=>`<div class="it" data-badge="${id}"><svg viewBox="0 0 60 60" role="img" aria-label="Badge ${n}, ${t}">${s}</svg><span class="lb">${n}<br><span>${t}</span></span></div>`).join('');
+const EZ='cubic-bezier(.16,1,.3,1)';
+document.querySelectorAll('.it').forEach(it=>it.onclick=()=>{const s=it.querySelector('svg');s.getAnimations().forEach(a=>a.cancel());s.animate([{transform:'scale(.3) rotate(-25deg)',filter:'blur(6px)',opacity:0},{transform:'scale(1.18) rotate(4deg)',filter:'blur(0)',opacity:1,offset:.65},{transform:'scale(1) rotate(0)',opacity:1}],{duration:1100,easing:EZ})});
+</script>
+</body>
+</html>
