@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PokeVibes — référence d'animation (validée par Clem le 11/11/2026)</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/*
+  RÉFÉRENCE D'ANIMATION VALIDÉE — à reproduire dans le site, même rythme, même easing.
+  Inspiration : vastworld.ai (text reveal masqué + fondu avec flou + text roll).
+  Démo écrite avec la police Space Grotesk (police retenue pour les titres et les chiffres).
+
+  1. Emblème       : flou 8px + échelle 0.5 + transparent -> net, taille normale. 1200 ms, départ 0 ms.
+  2. Titre         : « split text » — chaque lettre remonte de sous un masque (translateY 110% -> 0),
+                     1100 ms par lettre, 45 ms d'écart entre lettres (stagger), départ 500 ms,
+                     chaque nouvelle ligne démarre 350 ms après la précédente.
+  3. Sous-titre    : flou 6px + translateY 8px + transparent -> net. 1200 ms, départ 1700 ms.
+  4. Bouton        : translateY 12px + transparent -> en place. 1000 ms, départ 2100 ms.
+  5. Cartes        : flou 6px + translateY 16px + échelle 0.9 + transparent -> net.
+                     1100 ms chacune, départ 2400 ms, 180 ms d'écart entre cartes.
+  6. Bouton au survol / focus : « text roll » — le libellé glisse vers le haut (500 ms) et une copie
+                     jaune #F2C200 prend sa place.
+  Easing partout : cubic-bezier(.16, 1, .3, 1).
+*/
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#d9d9d4;font-family:Inter,system-ui,sans-serif}
+.ph{position:relative;overflow:hidden;background:#F6F6F4;border-radius:16px;padding:22px;color:#1C1C1C;width:340px;min-height:420px;box-sizing:border-box}
+.ln{display:block;overflow:hidden;line-height:1.05}
+.ch{display:inline-block}
+.big{font:700 40px 'Space Grotesk',sans-serif}
+.sub{font-size:15px;color:#5F5F59;margin-top:10px}
+.emb{display:grid;grid-template-columns:repeat(7,6px);width:42px;margin-bottom:18px}
+.emb i{width:6px;height:6px;display:block}
+.roll{margin-top:20px;height:44px;padding:0 18px;border-radius:12px;border:0;background:#1C1C1C;color:#F6F6F4;font:500 15px Inter,sans-serif;overflow:hidden;position:relative;cursor:pointer}
+.roll span{display:block;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.roll .b2{position:absolute;left:0;right:0;top:100%;line-height:44px;color:#F2C200}
+.roll:hover span,.roll:focus-visible span{transform:translateY(-100%)}
+.logos{display:flex;gap:10px;margin-top:22px}
+.logos div{width:52px;height:72px;border-radius:7px;background:#EAEAE6;border:3px solid #fff}
+#re{font:500 15px Inter,sans-serif;padding:10px 18px;border-radius:12px;border:1px solid #1C1C1C;background:transparent;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="ph" id="ph">
+  <div class="emb" id="emb"></div>
+  <div class="big"><span class="ln" id="l1">Ta collection,</span><span class="ln" id="l2">en pixels.</span></div>
+  <div class="sub" id="sub">Prix Cardmarket FR, mis à jour tout seul.</div>
+  <button class="roll" id="btn" aria-label="Scanner une carte"><span>Scanner une carte</span><span class="b2" aria-hidden="true">Scanner une carte</span></button>
+  <div class="logos" id="logos"><div></div><div></div><div></div><div></div></div>
+</div>
+<button id="re">Rejouer</button>
+<script>
+const E=["0111110","1222221","1233321","1232321","1233321","1222221","1222221","1222221","0111110"],C={0:"transparent",1:"#1C1C1C",2:"#F2C200",3:"#fff"};
+document.getElementById('emb').innerHTML=E.join('').split('').map(c=>`<i style="background:${C[c]}"></i>`).join('');
+['l1','l2'].forEach(id=>{const el=document.getElementById(id);el.innerHTML=[...el.textContent].map(c=>`<span class="ch">${c===' '?'&nbsp;':c}</span>`).join('')});
+const EZ='cubic-bezier(.16,1,.3,1)';
+function play(){
+  const ph=document.getElementById('ph');ph.getAnimations({subtree:true}).forEach(a=>a.cancel());
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){ph.animate([{opacity:0},{opacity:1}],{duration:200});return}
+  document.getElementById('emb').animate([{opacity:0,transform:'scale(.5)',filter:'blur(8px)'},{opacity:1,transform:'scale(1)',filter:'blur(0)'}],{duration:1200,easing:EZ,fill:'backwards'});
+  let t=500;
+  ['l1','l2'].forEach(id=>{[...document.querySelectorAll('#'+id+' .ch')].forEach((c,i)=>c.animate([{transform:'translateY(110%)'},{transform:'translateY(0)'}],{duration:1100,delay:t+i*45,easing:EZ,fill:'backwards'}));t+=350});
+  document.getElementById('sub').animate([{opacity:0,filter:'blur(6px)',transform:'translateY(8px)'},{opacity:1,filter:'blur(0)',transform:'none'}],{duration:1200,delay:1700,easing:EZ,fill:'backwards'});
+  document.getElementById('btn').animate([{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'none'}],{duration:1000,delay:2100,easing:EZ,fill:'backwards'});
+  [...document.querySelectorAll('#logos div')].forEach((d,i)=>d.animate([{opacity:0,transform:'translateY(16px) scale(.9)',filter:'blur(6px)'},{opacity:1,transform:'none',filter:'blur(0)'}],{duration:1100,delay:2400+i*180,easing:EZ,fill:'backwards'}));
+}
+document.getElementById('re').onclick=play;play();
+</script>
+</body>
+</html>
