@@ -1,6 +1,6 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
-import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "./badges.js?v=12";
+import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "./badges.js?v=13";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -108,6 +108,7 @@ function entreeApp() {
   animer($(".marque img"), "embleme", 0);
   animerTitre($(".marque .marque-nom"), 500);
   animer($(".entete-droite"), "bloc", 900);
+  if (PC.matches) animerListe([...document.querySelectorAll(".nav-bas > *")].sort((a, b) => getComputedStyle(a).order - getComputedStyle(b).order), 700, 80, "bloc");
   animer($(".choix-jeu"), "bloc", 1400);
   animer($(".couverture"), "bloc", T_COUVERTURE);
   animer($(".filtres"), "bouton", T_FILTRES);
@@ -198,6 +199,7 @@ async function afficher(session) {
   const { data: moi } = await sb.from("membres").select("id, pseudo, cree_le").eq("auth_id", session.user.id).maybeSingle();
   etat.moi = moi;
   $("#mon-pseudo").textContent = moi?.pseudo ?? "toi";
+  $("#profil-nom").textContent = moi?.pseudo ?? "";
   $("#initiale").textContent = (moi?.pseudo ?? "?").trim().charAt(0).toUpperCase() || "?";
   await Promise.all([chargerCollection(), chargerJournal()]);
   verifierBadges();
@@ -488,7 +490,7 @@ async function ouvrirFiche(x, mien) {
       <div class="ligne-recherche"><input id="prix-manuel" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Prix unitaire en €"><button id="valider-prix" type="button">Enregistrer</button></div>
       <p class="aide">Utile pour les produits que le relevé automatique ne suit pas (boosters à l'unité, coffrets, One Piece).</p></details>` : ""}
     <p id="fiche-message" class="message" role="status"></p>`;
-  $("#fiche").showModal();
+  ouvrirFenetreFiche();
   entreeFiche();
 
   if (!mien) return;
@@ -616,6 +618,7 @@ const ajout = { type: "carte", choix: null };
 
 $("#bouton-ajouter").addEventListener("click", async () => {
   ajout.choix = null; ajout.scanIA = null; ajout.opChoisi = null;
+  arreterWebcam();
   $("#ajout-titre").textContent = `Ajouter à la collection ${NOM_JEU[etat.jeu]}`;
   $("#ajout-message").textContent = "";
   $("#carte-resultats").innerHTML = ""; $("#carte-statut").textContent = "";
@@ -786,9 +789,10 @@ async function photoReduite(f, max = 1280) {
 }
 
 let scanEnCours = false;
-$("#scan-photo").addEventListener("change", async (e) => {
-  const input = e.target;
-  const f = input.files?.[0]; if (!f || scanEnCours) return;
+$("#scan-photo").addEventListener("change", (e) => scannerPhoto(e.target.files?.[0], e.target));
+// f : la photo (fichier ou image de la webcam) ; input : le champ à vider une fois la photo lue
+async function scannerPhoto(f, input = null) {
+  if (!f || scanEnCours) return;
   scanEnCours = true;
   ajout.scanIA = null;
   noterActivite("scan");
@@ -808,10 +812,10 @@ $("#scan-photo").addEventListener("change", async (e) => {
     if (photo) await lectureNumero(photo.bmp);
   } finally {
     statut.classList.remove("en-cours");
-    input.value = ""; // seulement après lecture (sur iPhone, vider avant rend la photo illisible)
+    if (input) input.value = ""; // seulement après lecture (sur iPhone, vider avant rend la photo illisible)
     scanEnCours = false;
   }
-});
+}
 
 async function appliquerReconnaissance(r) {
   const statut = $("#scan-statut");
@@ -1045,13 +1049,13 @@ function compteSet(idx, sid) {
 }
 function ligneSet(idx, sid) {
   const k = compteSet(idx, sid);
-  return `<li><button type="button" class="set" data-set="${esc(sid)}">
+  return `<li><button type="button" class="set" data-set="${esc(sid)}"${sid === etat.setOuvert ? ' aria-current="true"' : ""}>
     <span class="set-nom">${esc(k.set?.nom ?? sid)}</span>
     <span class="set-compte">${k.normales}/${k.off}${k.secretes ? ` <small>+${k.secretes} secrètes</small>` : ""}</span>
     <span class="barre-prog" aria-hidden="true"><span style="width:${k.pct}%"></span></span></button></li>`;
 }
 async function dessinerClasseurListe() {
-  etat.setOuvert = null;
+  etat.setOuvert = null; marquerSetOuvert();
   $("#classeur-set").hidden = true; $("#classeur-liste").hidden = false;
   let idx;
   try { idx = await chargerIndex(); }
@@ -1089,6 +1093,7 @@ async function ouvrirSet(sid, entree = false) {
   if (etat.setOuvert !== sid) { etat.prixSet = new Map(); etat.csFiltre = ""; $("#cs-filtre").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.val === ""))); }
   etat.setOuvert = sid;
   $("#classeur-liste").hidden = true; $("#classeur-set").hidden = false;
+  marquerSetOuvert();
   dessinerSet(idx);
   if (entree) {
     debutEntree = performance.now();
@@ -1413,6 +1418,116 @@ function resumeBadges(l) {
   return `<span class="badges-membre" role="img" aria-label="${l.length} badge${l.length > 1 ? "s" : ""}, dont ${esc(rares.map((x) => x.b.nom).join(", "))}">
     ${rares.map((x) => svgBadge(x.b).replace('role="img"', 'aria-hidden="true"')).join("")}<span class="infos">${l.length} badge${l.length > 1 ? "s" : ""}</span></span>`;
 }
+
+/* ================= Tablette et PC =================
+   Sous 700 px, rien de tout cela ne change l'affichage : l'expérience iPhone reste identique. */
+const PC = matchMedia("(min-width: 900px)");
+const GRAND_ECRAN = matchMedia("(min-width: 1200px)");
+const SOURIS = matchMedia("(min-width: 700px) and (hover: hover) and (pointer: fine)");
+
+// Fiche : panneau à droite de la liste (≥ 1200 px, la liste reste utilisable), sinon fenêtre comme avant
+function ouvrirFenetreFiche() {
+  const f = $("#fiche"), panneau = GRAND_ECRAN.matches;
+  if (f.open && f.classList.contains("panneau") === panneau) return; // déjà ouverte : le contenu vient d'être remplacé
+  if (f.open) f.close();
+  f.classList.toggle("panneau", panneau);
+  document.body.classList.toggle("avec-panneau", panneau);
+  if (panneau) f.show(); else f.showModal();
+}
+$("#fiche").addEventListener("close", () => document.body.classList.remove("avec-panneau"));
+GRAND_ECRAN.addEventListener?.("change", () => { if ($("#fiche").open && $("#fiche").classList.contains("panneau")) $("#fiche").close(); });
+
+function marquerSetOuvert() {
+  document.querySelectorAll("#vue-classeur .set").forEach((b) => {
+    if (b.dataset.set === etat.setOuvert) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+  });
+}
+
+// « Text roll » sur les liens de la barre latérale (PC seulement : rien ne change sur iPhone)
+function rollBarreLaterale() { if (PC.matches) document.querySelectorAll(".nav-item").forEach(preparerRoll); }
+rollBarreLaterale();
+PC.addEventListener?.("change", rollBarreLaterale);
+
+// Raccourcis clavier : « / » cherche, Échap ferme le panneau de la fiche (les fenêtres se ferment déjà avec Échap)
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    const f = $("#fiche");
+    if (f.open && f.classList.contains("panneau") && !$("#ajout").open && !$("#deblocage").open) { e.preventDefault(); f.close(); }
+    return;
+  }
+  if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+  if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+  if ($("#deblocage").open) return;
+  const visible = (el) => el && el.offsetParent !== null;
+  let champ = $("#ajout").open ? $("#recherche-carte") : [$("#recherche"), $("#classeur-recherche")].find(visible);
+  if (!$("#ajout").open && !visible(champ)) { montrerVue("collection"); champ = $("#recherche"); }
+  if (!champ || (!visible(champ) && !$("#ajout").open)) return;
+  e.preventDefault();
+  champ.focus(); champ.select?.();
+});
+
+// Scanner sur PC : choisir un fichier
+$("#choisir-fichier").addEventListener("click", () => $("#scan-fichier").click());
+$("#scan-fichier").addEventListener("change", (e) => scannerPhoto(e.target.files?.[0], e.target));
+
+// Glisser-déposer une image : dans la fenêtre d'ajout, ou n'importe où sur la page (la fenêtre s'ouvre)
+const avecFichiers = (e) => [...(e.dataTransfer?.types ?? [])].includes("Files");
+document.addEventListener("dragover", (e) => {
+  if (!avecFichiers(e)) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = "copy";
+  $("#zone-depot").classList.add("survol");
+});
+document.addEventListener("dragleave", (e) => { if (!e.relatedTarget) $("#zone-depot").classList.remove("survol"); });
+document.addEventListener("drop", async (e) => {
+  if (!avecFichiers(e)) return;
+  e.preventDefault();
+  $("#zone-depot").classList.remove("survol");
+  const f = [...e.dataTransfer.files].find((x) => x.type.startsWith("image/"));
+  if (!$("#ajout").open) { if (!f) return; $("#bouton-ajouter").click(); await new Promise((r) => setTimeout(r, 50)); }
+  if (!f) { $("#scan-statut").textContent = "Ce fichier n'est pas une image. Glisse une photo de la carte (JPG, PNG, HEIC…)."; return; }
+  scannerPhoto(f);
+});
+
+// Webcam (si disponible), avec un repli propre si elle est refusée ou absente
+let fluxWebcam = null;
+const webcamPossible = () => !!navigator.mediaDevices?.getUserMedia;
+$("#bouton-webcam").hidden = !webcamPossible();
+function arreterWebcam() {
+  fluxWebcam?.getTracks().forEach((t) => t.stop());
+  fluxWebcam = null;
+  $("#webcam-video").srcObject = null;
+  $("#webcam").hidden = true;
+  $("#bouton-webcam").hidden = !webcamPossible();
+}
+$("#bouton-webcam").addEventListener("click", async () => {
+  const statut = $("#scan-statut");
+  try {
+    fluxWebcam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1600 }, height: { ideal: 1200 } }, audio: false });
+    const v = $("#webcam-video");
+    v.srcObject = fluxWebcam;
+    $("#webcam").hidden = false; $("#bouton-webcam").hidden = true;
+    await v.play().catch(() => {});
+    statut.textContent = "Tiens la carte bien à plat devant la webcam, puis prends la photo.";
+    $("#webcam-photo").focus();
+  } catch (err) {
+    arreterWebcam();
+    statut.textContent = err?.name === "NotAllowedError" || err?.name === "SecurityError"
+      ? "Webcam refusée. Pas de souci : glisse une photo de la carte ici, ou choisis un fichier."
+      : "Aucune webcam disponible. Glisse une photo de la carte ici, ou choisis un fichier.";
+  }
+});
+$("#webcam-photo").addEventListener("click", async () => {
+  const v = $("#webcam-video");
+  if (!v.videoWidth) { $("#scan-statut").textContent = "La webcam démarre encore, réessaie dans une seconde."; return; }
+  const c = document.createElement("canvas");
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext("2d").drawImage(v, 0, 0);
+  const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.92));
+  arreterWebcam();
+  if (blob) scannerPhoto(new File([blob], "webcam.jpg", { type: "image/jpeg" }));
+});
+$("#webcam-annuler").addEventListener("click", () => { arreterWebcam(); $("#scan-statut").textContent = ""; });
+$("#ajout").addEventListener("close", arreterWebcam);
 
 /* ================= Mode sombre ================= */
 const sombreSysteme = matchMedia("(prefers-color-scheme: dark)");

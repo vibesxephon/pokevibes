@@ -519,3 +519,169 @@ img { max-width: 100%; }
   padding: 12px 16px; border-radius: 14px; background: var(--encre); color: var(--carton);
   font-weight: 500; text-align: center; box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
 }
+
+/* =====================================================================
+   Tablette et PC (v13). Sous 700 px, rien ne change : tout ce qui suit
+   est soit masqué par défaut, soit dans une requête « à partir de 700 px ».
+   ===================================================================== */
+.nav-badges, .scan-libelle, .profil-nom, .classeur-invite, .scan-pc { display: none; }
+.lien-bouton { border: 0; padding: 0; background: none; font: inherit; font-weight: 600; color: var(--encre); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.bouton-secondaire {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 46px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--contour);
+  background: transparent; color: var(--encre); font-weight: 600; cursor: pointer;
+}
+
+/* ---------- À partir de 700 px (tablette) ---------- */
+@media (min-width: 700px) {
+  /* Focus clavier : anneau jaune doublé d'encre, visible sur tous les fonds (y compris le jaune) */
+  :focus-visible { outline: 3px solid var(--score); outline-offset: 2px; box-shadow: 0 0 0 2px var(--encre); }
+  .pochettes { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .filtres { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; }
+  .ligne-recherche select { max-width: 240px; }
+  /* Largeur de lecture confortable */
+  .intro-vue, .vide, .tendance-ext, .maj, .aide, .message, .deb-condition, .pied span { max-width: 65ch; }
+  .vide { margin-inline: auto; }
+  .grille-badges { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+
+/* Scanner sur ordinateur (souris) : glisser-déposer, fichier, webcam à la place du bouton « appareil photo » */
+@media (min-width: 700px) and (hover: hover) and (pointer: fine) {
+  .ajout .bouton-scanner { display: none !important; }
+  .scan-pc { display: grid; gap: 10px; margin: 6px 0 4px; }
+}
+.zone-depot {
+  display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 16px;
+  border: 2px dashed var(--contour); background: var(--surface); color: var(--encre-douce);
+  transition: border-color .3s cubic-bezier(.16, 1, .3, 1), background-color .3s cubic-bezier(.16, 1, .3, 1);
+}
+.zone-depot p { margin: 0; line-height: 1.45; }
+.zone-depot strong { color: var(--encre); }
+.zone-depot svg { flex: none; color: var(--encre-douce); }
+.zone-depot.survol { border-color: var(--score); background: var(--score-pale); }
+.webcam { display: grid; gap: 10px; }
+.webcam[hidden] { display: none; }
+.webcam video { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 14px; background: #000; }
+.webcam-actions { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.webcam-actions .bouton-principal { margin: 0; height: 46px; }
+
+/* Survol (souris seulement) : léger, dans l'esprit du « text roll » */
+@media (min-width: 700px) and (hover: hover) and (pointer: fine) {
+  .pochette .visuel, .badge-svg svg, .cc-img { transition: transform .45s cubic-bezier(.16, 1, .3, 1), box-shadow .45s cubic-bezier(.16, 1, .3, 1); }
+  .pochette:hover .visuel { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0, 0, 0, .14); }
+  .cc:hover .cc-img { transform: translateY(-3px); }
+  .badge-item:hover .badge-svg svg { transform: translateY(-3px) rotate(-4deg); }
+  .set, .membres button, .badge-item, .bouton-scan, .bouton-secondaire, .puces button, .jeu-choix, .nav-item {
+    transition: background-color .3s cubic-bezier(.16, 1, .3, 1), border-color .3s cubic-bezier(.16, 1, .3, 1), color .3s cubic-bezier(.16, 1, .3, 1), box-shadow .3s cubic-bezier(.16, 1, .3, 1), transform .3s cubic-bezier(.16, 1, .3, 1);
+  }
+  .set:hover, .membres button:hover:not([aria-pressed="true"]), .badge-item:hover { box-shadow: inset 0 0 0 2px var(--contour); }
+  .puces button:hover:not([aria-pressed="true"]), .bouton-secondaire:hover { border-color: var(--encre); }
+  .jeu-choix:hover:not([aria-pressed="true"]), .nav-item:hover, .lien-retour:hover { color: var(--encre); }
+  .bouton-scan:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(242, 194, 0, .35); }
+  .lien-discret:hover, .lien-bouton:hover { text-decoration-thickness: 2px; }
+}
+
+/* ---------- À partir de 900 px (PC) : barre latérale ---------- */
+@media (min-width: 900px) {
+  :root { --cote: 248px; }
+  #app { padding-left: var(--cote); }
+
+  /* En haut de la barre : emblème + PokeVibes ; en bas : avatar et thème */
+  .barre { position: fixed; top: 0; left: 0; width: var(--cote); z-index: 7; padding: 26px 24px 0; background: transparent; justify-content: flex-start; }
+  .entete-droite {
+    position: fixed; left: 0; bottom: 0; width: var(--cote); z-index: 7;
+    padding: 14px 16px 18px; justify-content: space-between;
+    background: var(--pochette); border-top: 1px solid var(--surface);
+  }
+  .entete-droite .bouton-theme { order: 2; }
+  .profil { order: 1; width: auto; min-width: 0; height: 44px; padding: 2px 12px 2px 2px; gap: 10px; border-radius: 99px; display: flex; align-items: center; background: transparent; color: var(--encre); }
+  #initiale { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--badge); color: var(--score); font: 700 1rem var(--titre); }
+  .profil-nom { display: block; font: 600 .95rem var(--texte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* La barre du bas devient la barre latérale */
+  .nav-bas {
+    top: 0; bottom: 0; right: auto; width: var(--cote); height: auto;
+    padding: 96px 14px 96px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+    border-top: 0; border-right: 1px solid var(--surface);
+  }
+  .nav-item { flex-direction: row; justify-content: flex-start; gap: 14px; padding: 11px 14px; border-radius: 12px; font: 500 .95rem var(--texte); }
+  .nav-item[aria-current] { background: var(--surface); }
+  .nav-item[data-vue="collection"] { order: 1; }
+  .nav-item[data-vue="classeur"] { order: 2; }
+  .nav-item[data-vue="equipage"] { order: 3; }
+  .nav-badges { display: flex; order: 4; }
+  .nav-item .roll-masque { flex: 1; text-align: left; }
+  .nav-item.roll { --roll-copie: #6E5600; }
+  .bouton-scan {
+    order: 5; justify-self: stretch; margin: 20px 0 0; width: 100%; height: 54px; border: 0; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center; gap: 10px; font: 600 1rem var(--texte);
+  }
+  .bouton-scan svg { width: 24px; height: 24px; }
+  .scan-libelle { display: inline; }
+
+  /* Contenu : toute la largeur, mais une largeur de lecture raisonnable */
+  .vue { max-width: 1240px; padding: 32px 40px 32px; }
+  .pied { max-width: 1240px; padding: 8px 40px 40px; }
+  .choix-jeu { margin-top: 0; }
+  .titre-vue { font-size: 2rem; margin-top: 0; }
+  .lien-retour { padding-top: 0; }
+
+  /* La mise en page suit la largeur réelle du contenu (plus étroite quand la fiche est ouverte en panneau) */
+  .vue { container-type: inline-size; }
+  .couverture { padding: 24px 26px 22px; }
+
+  /* Grilles de cartes : 5 à 6 colonnes */
+  .pochettes { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 18px 16px; }
+  .page { margin-top: 32px; }
+
+  /* Classeur : extensions à gauche, extension ouverte à droite */
+  #vue-classeur:not([hidden]) { display: grid; grid-template-columns: 330px minmax(0, 1fr); column-gap: 40px; align-items: start; }
+  #vue-classeur > #classeur-liste[hidden] { display: block !important; }
+  #classeur-liste { grid-column: 1; grid-row: 1; position: sticky; top: 24px; max-height: calc(100dvh - 48px); overflow-y: auto; padding: 2px 6px 2px 2px; }
+  #classeur-set, .classeur-invite { grid-column: 2; grid-row: 1; }
+  #classeur-retour { display: none; }
+  #classeur-set[hidden] + .classeur-invite {
+    display: grid; place-items: center; min-height: 320px; margin: 0; padding: 24px; text-align: center;
+    border: 2px dashed var(--contour); border-radius: 20px; color: var(--encre-douce);
+  }
+  .set[aria-current="true"] { box-shadow: inset 0 0 0 2px var(--score); }
+  .grille-classeur { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px; }
+
+  /* L'Équipage */
+  .membres { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+  /* Fenêtres : centrées, un peu plus larges */
+  .ajout { width: min(600px, 100vw); }
+  .toast { left: calc(var(--cote) + 24px); right: 24px; bottom: 28px; }
+}
+
+/* Couverture : valeur à gauche, chiffres à droite, quand le contenu est assez large */
+@container (min-width: 760px) {
+  .couverture { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); column-gap: 32px; padding: 26px 28px 22px; }
+  .couverture > * { grid-column: 1; }
+  .couverture .chiffres { grid-column: 2; grid-row: 1 / span 4; align-self: center; margin: 0; gap: 10px; }
+  .chiffres div { padding: 14px; }
+  .chiffres dd { font-size: 1.35rem; }
+  .score { font-size: 4rem; }
+}
+/* Filtres et tri : une seule ligne s'il y a la place, sinon deux lignes */
+@container (max-width: 640px) {
+  .filtres { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- À partir de 1200 px : la fiche s'ouvre en panneau à droite de la liste ---------- */
+@media (min-width: 1200px) {
+  :root { --panneau: 440px; }
+  .fiche.panneau {
+    position: fixed; top: 0; right: 0; bottom: 0; left: auto; z-index: 9;
+    width: var(--panneau); max-width: var(--panneau); height: 100dvh; max-height: 100dvh; margin: 0;
+    padding: 22px 28px 36px; border-radius: 0; overflow-y: auto;
+    border-left: 1px solid var(--lisere); box-shadow: -16px 0 40px rgba(0, 0, 0, .08);
+  }
+  body.avec-panneau #app { padding-right: var(--panneau); }
+  body.avec-panneau .toast { right: calc(var(--panneau) + 24px); }
+}
+
+/* Barre latérale en mode sombre : la copie du « text roll » en jaune vif */
+:root[data-theme="sombre"] .nav-item.roll { --roll-copie: #F2C200; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .nav-item.roll { --roll-copie: #F2C200; } }

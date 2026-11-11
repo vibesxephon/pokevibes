@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -46,7 +46,7 @@
         <svg class="ico-lune" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
         <svg class="ico-soleil" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       </button>
-      <button id="bouton-badges" class="profil" type="button" aria-label="Mes badges"><span id="initiale" aria-hidden="true">?</span></button>
+      <button id="bouton-badges" class="profil" type="button" aria-label="Mes badges"><span id="initiale" aria-hidden="true">?</span><span id="profil-nom" class="profil-nom" aria-hidden="true"></span></button>
     </span>
   </header>
 
@@ -116,6 +116,7 @@
       </div>
       <div id="cs-cartes" class="grille-classeur"></div>
     </div>
+    <p id="classeur-invite" class="classeur-invite">Choisis une extension à gauche pour la remplir carte par carte.</p>
   </section>
 
   <!-- L'Équipage -->
@@ -151,10 +152,14 @@
       Classeur</button>
     <button id="bouton-ajouter" class="bouton-scan" aria-label="Scanner ou ajouter une carte">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M12 9v6M9 12h6"/></svg>
+      <span class="scan-libelle" aria-hidden="true">Scanner une carte</span>
     </button>
     <button class="nav-item" data-vue="equipage">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><circle cx="17" cy="10" r="2.6"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M15 15.2c2.5-.4 4.6.9 5.5 3.8"/></svg>
       L'Équipage</button>
+    <button class="nav-item nav-badges" data-vue="badges">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M8.5 14L7 21l5-2.5L17 21l-1.5-7"/><path d="M12 6.2l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 8.3l2-.3z" stroke-width="1.4"/></svg>
+      Mes badges</button>
   </nav>
 </div>
 
@@ -179,6 +184,24 @@
     📷 Scanner avec l'appareil photo
     <input id="scan-photo" type="file" accept="image/*" capture="environment" hidden>
   </label>
+  <!-- Sur PC : glisser-déposer, fichier, webcam -->
+  <div class="scan-pc" id="scan-pc">
+    <div class="zone-depot" id="zone-depot">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <p><strong>Glisse une photo de carte ici</strong><br>ou <button type="button" id="choisir-fichier" class="lien-bouton">choisis un fichier</button></p>
+      <input id="scan-fichier" type="file" accept="image/*" hidden>
+    </div>
+    <button type="button" id="bouton-webcam" class="bouton-secondaire" hidden>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="10" r="6"/><circle cx="12" cy="10" r="2"/><path d="M8 20h8M12 16v4"/></svg>
+      Utiliser la webcam</button>
+    <div id="webcam" class="webcam" hidden>
+      <video id="webcam-video" playsinline muted aria-label="Aperçu de la webcam"></video>
+      <div class="webcam-actions">
+        <button type="button" id="webcam-photo" class="bouton-principal">Prendre la photo</button>
+        <button type="button" id="webcam-annuler" class="bouton-secondaire">Annuler</button>
+      </div>
+    </div>
+  </div>
   <p class="aide">Une carte bien à plat et en entier, ou un produit scellé de face. L'IA reconnaît le jeu, le nom, le numéro et l'extension.</p>
   <p id="scan-statut" class="message" role="status"></p>
   <div class="puces" id="ajout-type" role="group" aria-label="Type d'objet">
@@ -257,6 +280,6 @@
   </div>
 </dialog>
 
-<script type="module" src="app.js?v=12"></script>
+<script type="module" src="app.js?v=13"></script>
 </body>
 </html>
