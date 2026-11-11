@@ -48,7 +48,33 @@ async function chargerCollection() {
   const { data, error } = await sb.from("ma_collection").select("*");
   if (error) { $("#classeur").innerHTML = `<p class="vide">La collection n'a pas pu être chargée : ${esc(error.message)}</p>`; return; }
   etat.toutes = fusionner(data ?? []);
+  await chargerTendances(etat.toutes);
   dessinerCollection();
+}
+
+/* Tendance sur 30 jours : moyenne Cardmarket des 7 derniers jours comparée à celle des 30 derniers jours
+   (les deux sur la même base, toutes langues). Notre propre historique FR prendra le relais quand il aura 30 jours. */
+async function chargerTendances(liste) {
+  const ids = [...new Set(liste.map((x) => x.produit_id))];
+  if (!ids.length) return;
+  const { data } = await sb.from("prix_actuel").select("produit_id, etat_prix, source, detail").in("produit_id", ids).eq("source", "api_fr");
+  const m = new Map((data ?? []).map((r) => [`${r.produit_id}|${r.etat_prix}`, r.detail]));
+  for (const x of liste) {
+    const d = m.get(`${x.produit_id}|${x.defaut ? "defaut" : "standard"}`);
+    const m7 = Number(d?.moy7), m30 = Number(d?.moy30);
+    x.tendance = m7 > 0 && m30 > 0 ? (m7 / m30 - 1) * 100 : null;
+  }
+}
+function tendanceMoyenne(liste) {
+  let s = 0, poids = 0;
+  for (const x of liste) if (x.tendance != null && x.valeur > 0) { s += x.tendance * x.valeur; poids += x.valeur; }
+  return poids ? s / poids : null;
+}
+function etiquetteTendance(t, court = false) {
+  if (t == null) return "";
+  const r = Math.round(t);
+  if (Math.abs(r) < 2) return `<span class="tendance stable">${court ? "= 30 j" : "stable sur 30 j"}</span>`;
+  return `<span class="tendance ${r > 0 ? "hausse" : "baisse"}">${r > 0 ? "↗ +" : "↘ "}${r} %${court ? " 30 j" : " sur 30 j"}</span>`;
 }
 
 // Un même produit acheté à des prix différents (ex. 3 ETB 30 Ans) = une seule pochette
@@ -98,6 +124,8 @@ function resume() {
   const enAttente = c.filter((x) => x.prix_actuel == null).length;
   $("#maj-prix").textContent = (dates.length ? `Dernier relevé de prix le ${new Date(dates.at(-1)).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}.` : "")
     + (enAttente ? ` ${enAttente} objet${enAttente > 1 ? "s" : ""} en attente de prix.` : "");
+  const tg = tendanceMoyenne(c);
+  $("#tendance-globale").innerHTML = tg == null ? "" : `Marché sur 30 jours : ${etiquetteTendance(tg)}`;
 }
 
 function compteur(el, cible) {
@@ -134,6 +162,7 @@ function pochette(x, avecAchat = true) {
     <span class="nom">${esc(x.nom)}</span>
     <span class="infos">${infos}</span>
     <span class="prix">${prix}${evo}</span>
+    ${etiquetteTendance(x.tendance, true)}
   </button>`;
 }
 
@@ -148,7 +177,8 @@ function sousSections(items, avecAchat) {
 
 function grouper(liste, avecAchat) {
   if (etat.tri !== "extension") {
-    const cle = etat.tri === "gain" ? (x) => Number(x.benefice ?? -1e9) : (x) => Number(x.valeur ?? 0);
+    const cle = etat.tri === "gain" ? (x) => Number(x.benefice ?? -1e9)
+      : etat.tri === "tendance" ? (x) => Number(x.tendance ?? -1e9) : (x) => Number(x.valeur ?? 0);
     return `<div class="page"><div class="pochettes">${[...liste].sort((a, b) => cle(b) - cle(a)).map((x) => pochette(x, avecAchat)).join("")}</div></div>`;
   }
   const pages = new Map();
@@ -166,6 +196,7 @@ function grouper(liste, avecAchat) {
     const somme = items.reduce((s, x) => s + Number(x.valeur ?? 0), 0);
     return `<section class="page">
       <div class="page-titre"><h3>${esc(x0.extension ?? "Divers")}</h3><span class="code">${esc(x0.extension_code ?? "")}</span><span class="somme">${euro(somme, 0)}</span></div>
+      ${etiquetteTendance(tendanceMoyenne(items)) ? `<p class="tendance-ext">Tendance du marché : ${etiquetteTendance(tendanceMoyenne(items))}</p>` : ""}
       ${sousSections(items, avecAchat)}
     </section>`;
   }).join("");
@@ -265,6 +296,7 @@ async function ouvrirFiche(x, mien) {
       <dt>Prix actuel</dt><dd>${x.prix_actuel == null ? "? <span class='infos'>attendu au prochain relevé</span>" : euro(x.prix_actuel)}</dd>
       <dt>Quantité</dt><dd>${mien ? `<span class="stepper"><button data-delta="-1" aria-label="Retirer un exemplaire">−</button><span id="fiche-qte">${x.quantite}</span><button data-delta="1" aria-label="Ajouter un exemplaire">+</button></span>` : x.quantite}</dd>
       <dt>Valeur</dt><dd>${euro(x.valeur)}</dd>
+      ${x.tendance != null ? `<dt>Marché 30 jours</dt><dd>${etiquetteTendance(x.tendance)}</dd>` : ""}
       ${mien && x.prix_achat != null ? `<dt>Payé</dt><dd>${euro(x.prix_achat)} l'unité${x.quantite > 1 ? " en moyenne" : ""}</dd><dt>Plus-value</dt><dd class="${(x.benefice ?? 0) >= 0 ? "evo positif" : "evo negatif"}">${euro(x.benefice)} (${pct(x.evolution_pct)})</dd>` : ""}
       ${mien && x.prix_achat == null && x.categorie === "carte" ? `<dt>Origine</dt><dd>Tirée d'un booster 🎁</dd>` : ""}
       <dt>Source</dt><dd>${esc(sources[x.prix_source] ?? x.prix_source ?? "—")}${x.prix_date ? `, le ${new Date(x.prix_date).toLocaleDateString("fr-FR")}` : ""}</dd>
