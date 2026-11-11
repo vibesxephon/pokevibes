@@ -9,6 +9,162 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const calme = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const NOM_JEU = { pokemon: "Pokémon", onepiece: "One Piece" };
 
+/* ================= Animations d'entrée =================
+   Référence validée : docs/animation-reference.html (inspiration vastworld.ai).
+   - Tout est visible par défaut : chaque animation part de l'état caché avec fill:"backwards",
+     donc si le JavaScript plante, rien ne reste caché. Rien ne bloque le toucher ni le défilement.
+   - On n'anime que transform, opacity, filter (flou borné) et stroke-dashoffset.
+   - Mouvement réduit : simple fondu de 200 ms, sans décalage ni mouvement. */
+const EZ = "cubic-bezier(.16, 1, .3, 1)";
+const ANIM = {
+  embleme: [{ opacity: 0, transform: "scale(.5)", filter: "blur(8px)" }, { opacity: 1, transform: "scale(1)", filter: "blur(0)" }],
+  bloc: [{ opacity: 0, transform: "translateY(8px)", filter: "blur(6px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }],
+  bouton: [{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }],
+  carte: [{ opacity: 0, transform: "translateY(16px) scale(.9)", filter: "blur(6px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }],
+  lettre: [{ transform: "translateY(110%)" }, { transform: "translateY(0)" }],
+};
+const DUREE = { embleme: 1200, bloc: 1200, bouton: 1000, carte: 1100, lettre: 1100 };
+
+// Moment de départ de la dernière entrée (ouverture, onglet, fiche) : les blocs rendus un peu plus tard
+// (données arrivées du réseau) se calent sur le même rythme au lieu d'arriver tous ensemble.
+let debutEntree = -1e9;
+const entreeRecente = () => performance.now() - debutEntree < 2500;
+const restant = (t) => Math.max(0, debutEntree + t - performance.now());
+
+function animer(el, type, t = 0) {
+  if (!el?.animate) return;
+  el.getAnimations().forEach((a) => a.cancel());
+  if (calme) { el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, fill: "backwards" }); return; }
+  el.animate(ANIM[type], { duration: DUREE[type], delay: restant(t), easing: EZ, fill: "backwards" });
+}
+// Les cartes une par une : 12 premières décalées de 180 ms, les suivantes ensemble
+function animerListe(els, t, ecart = 180, type = "carte") {
+  [...els].forEach((el, i) => animer(el, type, t + Math.min(i, 12) * ecart));
+}
+
+// « Split text » : chaque lettre remonte de sous le masque de son mot (45 ms d'écart).
+// Le titre garde son texte entier pour les lecteurs d'écran (aria-label), les lettres sont masquées.
+function decouper(el) {
+  if (!el) return [];
+  const texte = el.dataset.decoupe && el.querySelector(".mot") ? el.dataset.decoupe : el.textContent.trim();
+  if (el.dataset.decoupe !== texte || !el.querySelector(".mot")) {
+    const lettres = texte.split(/\s+/).map((m) =>
+      `<span class="mot" aria-hidden="true">${[...m].map((c) => `<span class="lettre">${esc(c)}</span>`).join("")}</span>`).join(" ");
+    // Titre (h1, h2) : aria-label. Simple texte (le nom dans l'en-tête) : copie invisible lue par VoiceOver.
+    if (/^H\d$/.test(el.tagName)) { el.setAttribute("aria-label", texte); el.innerHTML = lettres; }
+    else el.innerHTML = `<span class="sr-only">${esc(texte)}</span>${lettres}`;
+    el.dataset.decoupe = texte;
+  }
+  return [...el.querySelectorAll(".lettre")];
+}
+function ecrireTitre(el, texte) { // remplace un titre découpé par du texte simple
+  if (el.dataset.decoupe === texte) return;
+  el.textContent = texte; el.removeAttribute("aria-label"); delete el.dataset.decoupe;
+}
+function animerTitre(el, t) {
+  const lettres = decouper(el);
+  if (calme) { animer(el, "bloc", t); return t; }
+  lettres.forEach((l, i) => animer(l, "lettre", t + i * 45));
+  return t + lettres.length * 45;
+}
+
+// La courbe de prix se dessine de gauche à droite
+function dessinerCourbe(svg, t) {
+  const ligne = svg?.querySelector("polyline"); if (!ligne || calme) return;
+  ligne.style.strokeDasharray = "1";
+  ligne.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 1400, delay: restant(t), easing: EZ, fill: "backwards" });
+}
+
+// Même courbe que EZ pour le compteur de la valeur (résolution de la courbe de Bézier)
+function bezier(x1, y1, x2, y2) {
+  const f = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  return (x) => { let lo = 0, hi = 1; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; f(x1, x2, m) < x ? (lo = m) : (hi = m); } return f(y1, y2, (lo + hi) / 2); };
+}
+const courbeEZ = bezier(.16, 1, .3, 1);
+
+// « Text roll » : le libellé est doublé d'une copie jaune qui prend sa place au survol / focus
+function preparerRoll(el) {
+  if (!el || el.classList.contains("roll")) return;
+  const noeud = [...el.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+  if (!noeud) return;
+  const texte = noeud.textContent.trim();
+  const masque = document.createElement("span"); masque.className = "roll-masque";
+  masque.innerHTML = `<span class="roll-a">${esc(texte)}</span><span class="roll-b" aria-hidden="true">${esc(texte)}</span>`;
+  noeud.replaceWith(masque);
+  el.classList.add("roll");
+}
+document.querySelectorAll(".bouton-principal, .connexion-carte button, .bouton-scanner").forEach(preparerRoll);
+
+// Ouverture de l'appli (et rafraîchissement) : emblème, titre, couverture, filtres, puis les cartes
+const T_COUVERTURE = 1700, T_FILTRES = 2100, T_CARTES = 2400;
+// Rendus à animer au prochain dessin (une seule fois : les re-rendus suivants, filtres, prix… restent immobiles)
+const aAnimer = new Set();
+let tCouverture = T_COUVERTURE, tCartes = T_CARTES;
+function entreeApp() {
+  debutEntree = performance.now();
+  tCouverture = T_COUVERTURE; tCartes = T_CARTES;
+  aAnimer.add("valeur").add("collection");
+  animer($(".marque img"), "embleme", 0);
+  animerTitre($(".marque .marque-nom"), 500);
+  animer($(".entete-droite"), "bloc", 900);
+  animer($(".choix-jeu"), "bloc", 1400);
+  animer($(".couverture"), "bloc", T_COUVERTURE);
+  animer($(".filtres"), "bouton", T_FILTRES);
+}
+function entreeConnexion() {
+  debutEntree = performance.now();
+  const c = $(".connexion-carte");
+  animer(c.querySelector("img"), "embleme", 0);
+  animerTitre(c.querySelector("h1"), 500);
+  animer(c.querySelector("h1 + p"), "bloc", 1700);
+  animer(c.querySelector("form"), "bouton", 2100);
+}
+// Changement d'onglet : même style, rythme resserré pour ne pas faire attendre
+const T_ONGLET = { couverture: 120, filtres: 240, cartes: 400 };
+function entreeVue(v) {
+  debutEntree = performance.now();
+  const vue = $(`#vue-${v}`);
+  aAnimer.add(v);
+  if (v === "collection") {
+    tCouverture = T_ONGLET.couverture; tCartes = T_ONGLET.cartes; aAnimer.add("valeur");
+    animer(vue.querySelector(".choix-jeu"), "bloc", 0);
+    animer(vue.querySelector(".couverture"), "bloc", T_ONGLET.couverture);
+    animer(vue.querySelector(".filtres"), "bouton", T_ONGLET.filtres);
+    return;
+  }
+  const racine = v === "classeur" ? vue.querySelector("#classeur-liste:not([hidden]), #classeur-set:not([hidden])") : vue;
+  entreeBlocs(racine);
+}
+// Titre en split text, puis les autres blocs l'un après l'autre
+function entreeBlocs(racine) {
+  if (!racine) return;
+  let t = 0, i = 0;
+  for (const el of racine.children) {
+    if (el.hidden || el.matches(".sr-only, ul, .grille-classeur, .classeur")) continue;
+    if (el.matches("h2")) { animerTitre(el, 0); continue; }
+    animer(el, "bloc", t = 150 + i++ * 120);
+  }
+  return t;
+}
+// Les cartes d'une collection : titres d'extension et pochettes arrivent dans l'ordre de lecture
+function entreeCartes(racine, t) {
+  let n = 0;
+  racine.querySelectorAll(".titre-jeu, .page-titre, .tendance-ext, .sous-page h4, .pochette, .vide").forEach((el) => {
+    const d = t + Math.min(n, 12) * 180;
+    if (el.matches(".pochette")) { animer(el, "carte", d); n++; } else animer(el, "bloc", d);
+  });
+}
+// Ouverture d'une fiche carte : visuel, nom en split text, puis les blocs ; la courbe se dessine
+function entreeFiche() {
+  debutEntree = performance.now();
+  const f = $("#fiche-contenu");
+  animer(f.querySelector(".fiche-haut .visuel"), "carte", 0);
+  animerTitre(f.querySelector(".fiche-haut h2"), 150);
+  let t = 350;
+  f.querySelectorAll(".fiche-haut .infos, .fiche-haut .defaut, :scope > dl, :scope > .alerte, :scope > .historique, :scope > p:not(.message), :scope > details")
+    .forEach((el) => { animer(el, "bloc", t); if (el.matches(".historique")) dessinerCourbe(el.querySelector("svg"), t + 200); t += 120; });
+}
+
 const etat = {
   moi: null, toutes: [], jeu: "pokemon", categorie: "", recherche: "", tri: "extension",
   vitrine: [], membreChoisi: null, extensions: [], sets: null,
@@ -31,11 +187,13 @@ sb.auth.getSession().then(({ data }) => afficher(data.session));
 
 let charge = false;
 async function afficher(session) {
+  const connexionCachee = $("#ecran-connexion").hidden;
   $("#ecran-connexion").hidden = !!session;
   $("#app").hidden = !session;
-  if (!session) { charge = false; return; }
+  if (!session) { if (connexionCachee) entreeConnexion(); charge = false; return; }
   if (charge) return;
   charge = true;
+  entreeApp();
   const { data: moi } = await sb.from("membres").select("id, pseudo").eq("auth_id", session.user.id).maybeSingle();
   etat.moi = moi;
   $("#mon-pseudo").textContent = moi?.pseudo ?? "toi";
@@ -128,12 +286,21 @@ function resume() {
   $("#tendance-globale").innerHTML = tg == null ? "" : `Marché sur 30 jours : ${etiquetteTendance(tg)}`;
 }
 
+// La valeur compte de 0 à sa valeur à l'entrée (au moment où la couverture arrive),
+// puis d'une valeur à l'autre lors des mises à jour. Mouvement réduit : affichée directement.
+let tourCompteur = 0;
 function compteur(el, cible) {
-  if (calme) { el.textContent = euro(cible, 0); return; }
-  const t0 = performance.now(), duree = 900;
+  const entree = aAnimer.delete("valeur");
+  const depart = entree ? 0 : (el._valeur ?? 0);
+  el._valeur = cible;
+  const tour = ++tourCompteur;
+  if (calme || depart === cible) { el.textContent = euro(cible, 0); return; }
+  el.textContent = euro(depart, 0);
+  const t0 = performance.now() + (entree ? restant(tCouverture) : 0), duree = 1200;
   const pas = (t) => {
-    const k = Math.min(1, (t - t0) / duree);
-    el.textContent = euro(cible * (1 - Math.pow(1 - k, 3)), 0);
+    if (tour !== tourCompteur) return;
+    const k = Math.min(1, Math.max(0, (t - t0) / duree));
+    el.textContent = euro(depart + (cible - depart) * courbeEZ(k), 0);
     if (k < 1) requestAnimationFrame(pas);
   };
   requestAnimationFrame(pas);
@@ -207,6 +374,7 @@ function dessinerClasseur() {
   $("#classeur").innerHTML = liste.length ? grouper(liste, true)
     : duJeu().length ? `<p class="vide">Rien ne correspond à ces filtres. Essaie « Scellé et cartes » ou une autre recherche.</p>`
     : `<p class="vide">Ta collection ${NOM_JEU[etat.jeu]} est vide. Appuie sur « + Ajouter » pour commencer.</p>`;
+  if (aAnimer.delete("collection")) entreeCartes($("#classeur"), tCartes);
 }
 
 document.querySelectorAll(".filtres .puces").forEach((g) => g.addEventListener("click", (e) => {
@@ -225,17 +393,20 @@ function montrerVue(v) {
   $("#vue-collection").hidden = v !== "collection";
   $("#vue-equipage").hidden = v !== "equipage";
   $("#vue-classeur").hidden = v !== "classeur";
-  if (v === "equipage") chargerEquipage();
-  else if (v === "classeur") chargerClasseur().then(() => (etat.setOuvert ? ouvrirSet(etat.setOuvert) : dessinerClasseurListe()));
-  else dessinerCollection();
   scrollTo({ top: 0 });
+  entreeVue(v);
+  if (v === "equipage") chargerEquipage();
+  else if (v === "classeur") chargerClasseur().then(() => (etat.setOuvert ? ouvrirSet(etat.setOuvert, true) : dessinerClasseurListe()));
+  else dessinerCollection();
 }
 document.querySelectorAll(".nav-item").forEach((o) => o.addEventListener("click", () => montrerVue(o.dataset.vue)));
 function marquerJeu(jeu) {
   document.querySelectorAll(".jeu-choix").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.jeu === jeu)));
 }
 document.querySelectorAll(".jeu-choix").forEach((o) => o.addEventListener("click", () => {
-  etat.jeu = o.dataset.jeu; marquerJeu(etat.jeu); dessinerCollection();
+  etat.jeu = o.dataset.jeu; marquerJeu(etat.jeu);
+  debutEntree = performance.now(); tCouverture = 0; tCartes = 150; aAnimer.add("valeur").add("collection");
+  dessinerCollection();
 }));
 
 async function chargerEquipage() {
@@ -252,6 +423,7 @@ async function chargerEquipage() {
       <span><span class="pseudo">${esc(p)}</span><br><span class="infos">${m.objets} objets</span></span>
       <span class="valeur">${euro(m.valeur, 0)}</span></button></li>`).join("")
     || `<li class="vide">Personne n'a encore de collection. Partage le lien du site à L'Équipage.</li>`;
+  if (aAnimer.delete("equipage")) animerListe($("#membres").children, 400, 120, "bloc");
   dessinerVitrine();
 }
 $("#membres").addEventListener("click", (e) => {
@@ -259,6 +431,7 @@ $("#membres").addEventListener("click", (e) => {
   etat.membreChoisi = etat.membreChoisi === b.dataset.pseudo ? null : b.dataset.pseudo;
   document.querySelectorAll("#membres button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.pseudo === etat.membreChoisi)));
   dessinerVitrine();
+  debutEntree = performance.now(); entreeCartes($("#vitrine"), 0);
 });
 function dessinerVitrine() {
   const liste = etat.vitrine.filter((x) => x.pseudo === etat.membreChoisi);
@@ -309,6 +482,7 @@ async function ouvrirFiche(x, mien) {
       <p class="aide">Utile pour les produits que le relevé automatique ne suit pas (boosters à l'unité, coffrets, One Piece).</p></details>` : ""}
     <p id="fiche-message" class="message" role="status"></p>`;
   $("#fiche").showModal();
+  entreeFiche();
 
   if (!mien) return;
   $("#fiche-contenu").querySelectorAll("[data-delta]").forEach((b) => b.addEventListener("click", async () => {
@@ -336,7 +510,7 @@ function courbe(points) {
   const xy = v.map((y, i) => `${(i / (v.length - 1)) * w},${max === min ? h / 2 : h - ((y - min) / (max - min)) * h}`).join(" ");
   return `<div class="historique">
     <svg viewBox="-4 -4 ${w + 8} ${h + 8}" preserveAspectRatio="none" role="img" aria-label="Évolution du prix de ${euro(v[0])} à ${euro(v.at(-1))}">
-      <polyline points="${xy}" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      <polyline points="${xy}" pathLength="1" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
     </svg>
     <p>${points.length} relevés, de ${euro(min)} à ${euro(max)}</p></div>`;
 }
@@ -871,6 +1045,7 @@ async function dessinerClasseurListe() {
     .sort((a, b) => (idx.sets.get(b)?.ordre ?? 0) - (idx.sets.get(a)?.ordre ?? 0));
   $("#classeur-sets").innerHTML = sids.length ? sids.map((sid) => ligneSet(idx, sid)).join("")
     : `<li class="vide">Ton classeur est vide. Ouvre une extension ci-dessus, ou scanne une carte et range-la dans le Classeur.</li>`;
+  if (aAnimer.delete("classeur")) animerListe($("#classeur-sets").children, 500, 120, "bloc");
 }
 $("#classeur-recherche").addEventListener("input", async (e) => {
   const q = sansAccent(e.target.value);
@@ -880,9 +1055,13 @@ $("#classeur-recherche").addEventListener("input", async (e) => {
   $("#classeur-trouves").innerHTML = sets.length ? sets.map((x) => ligneSet(idx, x.id)).join("") : `<li class="vide">Aucune extension ne correspond.</li>`;
 });
 document.querySelector("#vue-classeur").addEventListener("click", (e) => {
-  const b = e.target.closest(".set"); if (b) ouvrirSet(b.dataset.set);
+  const b = e.target.closest(".set"); if (b) ouvrirSet(b.dataset.set, true);
 });
-$("#classeur-retour").addEventListener("click", () => { $("#classeur-recherche").value = ""; $("#classeur-trouves").innerHTML = ""; dessinerClasseurListe(); scrollTo({ top: 0 }); });
+$("#classeur-retour").addEventListener("click", () => {
+  $("#classeur-recherche").value = ""; $("#classeur-trouves").innerHTML = "";
+  $("#classeur-set").hidden = true; $("#classeur-liste").hidden = false; scrollTo({ top: 0 });
+  entreeVue("classeur"); dessinerClasseurListe();
+});
 $("#cs-filtre").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b) return;
   etat.csFiltre = b.dataset.val;
@@ -890,18 +1069,28 @@ $("#cs-filtre").addEventListener("click", async (e) => {
   dessinerSet(await chargerIndex());
 });
 
-async function ouvrirSet(sid) {
+async function ouvrirSet(sid, entree = false) {
   const idx = await chargerIndex();
   if (etat.setOuvert !== sid) { etat.prixSet = new Map(); etat.csFiltre = ""; $("#cs-filtre").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.val === ""))); }
   etat.setOuvert = sid;
   $("#classeur-liste").hidden = true; $("#classeur-set").hidden = false;
   dessinerSet(idx);
+  if (entree) {
+    debutEntree = performance.now();
+    const t = entreeBlocs($("#classeur-set"));
+    animerListe($("#cs-cartes").children, t + 120);
+  }
   const ids = idx.cartes.filter((c) => c.set?.id === sid).map((c) => c.id);
-  prixConnus(ids).then((m) => { if (etat.setOuvert === sid) { etat.prixSet = m; dessinerSet(idx); } }).catch(() => {});
+  prixConnus(ids).then((m) => {
+    if (etat.setOuvert !== sid) return;
+    etat.prixSet = m;
+    if (etat.csFiltre === "manque") return dessinerSet(idx); // tri par prix : il faut tout redessiner
+    $("#cs-cartes").querySelectorAll(".cc").forEach((b) => { const p = m.get(b.dataset.id); b.querySelector(".cc-bas span:last-child").textContent = p ? euro(p.prix) : ""; });
+  }).catch(() => {});
 }
 function dessinerSet(idx) {
   const k = compteSet(idx, etat.setOuvert);
-  $("#cs-titre").textContent = k.set?.nom ?? etat.setOuvert;
+  ecrireTitre($("#cs-titre"), k.set?.nom ?? etat.setOuvert);
   $("#cs-barre").style.width = `${k.pct}%`;
   $("#cs-compte").textContent = `${k.normales}/${k.off} cartes (${k.pct} %)${k.nbSec ? ` · secrètes : ${k.secretes}/${k.nbSec}` : ""}`;
   const prix = (c) => Number(etat.prixSet.get(c.id)?.prix ?? -1);

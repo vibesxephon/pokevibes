@@ -12,6 +12,7 @@
   --lisere: #DADAD3;
   --score: #F2C200;
   --score-pale: #FFF6CC;
+  --sur-score: #1C1C1C;     /* texte posé sur le jaune, dans les deux modes */
   --gain: #1F7A4D;
   --perte: #C23B3B;
   --couverture: #1C1C1C;
@@ -26,7 +27,6 @@
   --rayon: 14px;
   --titre: "Space Grotesk", system-ui, sans-serif;
   --texte: "Inter", system-ui, sans-serif;
-  --pixel: "Pixelify Sans", "Space Grotesk", sans-serif;
   --nav-h: 76px;
   color-scheme: light;
 }
@@ -74,7 +74,7 @@ img { max-width: 100%; }
   padding: 28px 24px;
   text-align: left;
 }
-.connexion-carte h1 { font: 700 2.2rem/1.1 var(--pixel); margin: 12px 0 6px; letter-spacing: .5px; }
+.connexion-carte h1 { font: 700 2.2rem/1.1 var(--titre); margin: 12px 0 6px; letter-spacing: -.02em; }
 .connexion-carte > p { color: var(--encre-douce); margin: 0 0 20px; }
 .connexion-carte label { display: block; font-weight: 600; margin: 14px 0 6px; }
 .facultatif { font-weight: 400; color: var(--encre-douce); }
@@ -96,7 +96,7 @@ img { max-width: 100%; }
   background: var(--carton);
 }
 .marque { display: flex; align-items: center; gap: 10px; }
-.marque-nom { font: 700 1.5rem/1 var(--pixel); letter-spacing: .5px; }
+.marque-nom { font: 700 1.5rem/1 var(--titre); letter-spacing: -.02em; }
 .profil {
   width: 40px; height: 40px; border-radius: 50%; flex: none;
   display: grid; place-items: center;
@@ -146,7 +146,7 @@ img { max-width: 100%; }
 .gain-ligne { margin: 0 0 12px; font-size: .85rem; color: var(--sur-couverture); }
 .pastille {
   display: inline-block; padding: 2px 8px; border-radius: 8px; margin-right: 4px;
-  background: var(--score); color: var(--encre); font-weight: 600;
+  background: var(--score); color: var(--sur-score); font-weight: 600;
 }
 .negatif .pastille { background: var(--pastille-perte); }
 .jauge { height: 6px; border-radius: 99px; background: var(--couverture-2); overflow: hidden; }
@@ -167,7 +167,7 @@ img { max-width: 100%; }
   border: 1px solid var(--contour); background: transparent;
   height: 36px; padding: 0 15px; border-radius: 999px; cursor: pointer; font-weight: 500;
 }
-.puces button[aria-pressed="true"] { background: var(--score); border-color: var(--score); color: var(--encre); font-weight: 600; }
+.puces button[aria-pressed="true"] { background: var(--score); border-color: var(--score); color: var(--sur-score); font-weight: 600; }
 .ligne-recherche { display: flex; gap: 8px; }
 .ligne-recherche input { flex: 1; min-width: 0; width: 100%; }
 .ligne-recherche select { flex: 0 0 auto; max-width: 45%; }
@@ -260,7 +260,7 @@ img { max-width: 100%; }
   justify-self: center; margin-top: -34px;
   width: 68px; height: 68px; border-radius: 50%;
   display: grid; place-items: center; cursor: pointer;
-  background: var(--score); color: var(--encre); border: 4px solid var(--carton);
+  background: var(--score); color: var(--sur-score); border: 4px solid var(--carton);
 }
 
 /* ---------- Classeur ---------- */
@@ -399,6 +399,48 @@ img { max-width: 100%; }
   * { transition: none !important; animation: none !important; }
 }
 
-/* ---------- À toi de jouer : animations arcade ----------
-   Points d'accroche : .score (la valeur), .pochette (les cartes),
-   .bouton-scan (le bouton jaune), .marque img (l'emblème holo). */
+/* ---------- Chiffres : Space Grotesk, chasse fixe ----------
+   Prix, totaux, pourcentages et numéros restent alignés d'une ligne à l'autre. */
+.score, .pastille, .gain-ligne, .chiffres dd, .page-titre .somme, .pochette .prix strong, .pochette .prix .evo,
+.quantite, .tendance, .set-compte, .cc-bas, .membres .valeur, .fiche dd:not(:last-of-type), .prix-tuile, .prix-choix strong,
+#fiche-qte, .progression p, .historique p {
+  font-family: var(--titre);
+  font-variant-numeric: tabular-nums;
+}
+.pochette .infos, .fiche .infos, .resultat .infos, .membres .infos, .maj, .sous-page h4 span, .page-titre .code {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Animations d'entrée (référence : docs/animation-reference.html) ----------
+   Tout est visible par défaut : app.js part de l'état caché (fill: backwards).
+   « Split text » : chaque mot est un masque, chaque lettre remonte de dessous. */
+.mot {
+  display: inline-block; overflow: hidden; vertical-align: top;
+  padding-block: .1em; margin-block: -.1em;  /* laisse respirer accents et jambages */
+}
+.lettre { display: inline-block; }
+
+/* « Text roll » des boutons principaux : le libellé glisse vers le haut dans son masque
+   et sa copie jaune prend sa place (500 ms). Survol seulement sur les écrans qui ont un vrai survol. */
+.roll { --roll-copie: #F2C200; }
+.roll-masque { position: relative; display: inline-block; overflow: hidden; vertical-align: top; line-height: 1.35; }
+.roll-a, .roll-b { display: block; transition: transform .5s cubic-bezier(.16, 1, .3, 1), opacity .2s; }
+.roll-b { position: absolute; left: 0; right: 0; top: 100%; color: var(--roll-copie); }
+@media (hover: hover) {
+  .roll:hover .roll-a, .roll:hover .roll-b { transform: translateY(-100%); }
+}
+.roll:focus-visible .roll-a, .roll:focus-visible .roll-b { transform: translateY(-100%); }
+/* Bouton clair en mode sombre : le jaune vif n'y serait pas lisible, on prend un jaune foncé */
+:root[data-theme="sombre"] .bouton-principal, :root[data-theme="sombre"] .connexion-carte button { --roll-copie: #6E5600; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="clair"]) .bouton-principal, :root:not([data-theme="clair"]) .connexion-carte button { --roll-copie: #6E5600; }
+}
+/* Mouvement réduit : la copie remplace le libellé sur place, sans glisser */
+@media (prefers-reduced-motion: reduce) {
+  .roll-b { top: 0; opacity: 0; }
+  .roll .roll-a, .roll .roll-b { transform: none !important; }
+  .roll:hover .roll-a, .roll:focus-visible .roll-a { opacity: 0; }
+  .roll:hover .roll-b, .roll:focus-visible .roll-b { opacity: 1; }
+}
+
+.jauge span { transition-timing-function: cubic-bezier(.16, 1, .3, 1); }
