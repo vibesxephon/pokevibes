@@ -894,5 +894,23 @@ $("#cs-cartes").addEventListener("click", async (e) => {
   if (error) { await chargerClasseur(); dessinerSet(idx); $("#cs-compte").textContent = `Pas enregistré : ${error.message}. Réessaie.`; }
 });
 
+/* ================= Mode sombre ================= */
+const sombreSysteme = matchMedia("(prefers-color-scheme: dark)");
+const themeActuel = () => document.documentElement.dataset.theme || (sombreSysteme.matches ? "sombre" : "clair");
+function majTheme() {
+  const sombre = themeActuel() === "sombre";
+  $("#bouton-theme").setAttribute("aria-label", sombre ? "Passer en mode clair" : "Passer en mode sombre");
+  document.documentElement.classList.toggle("est-sombre", sombre);
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", sombre ? "#121212" : "#F6F6F4");
+}
+$("#bouton-theme").addEventListener("click", () => {
+  const t = themeActuel() === "sombre" ? "clair" : "sombre";
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("theme", t); } catch {}
+  majTheme();
+});
+sombreSysteme.addEventListener?.("change", majTheme);
+majTheme();
+
 /* ================= Installation (PWA) ================= */
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});

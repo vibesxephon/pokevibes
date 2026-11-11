@@ -6,13 +6,17 @@
 <title>PokeVibes</title>
 <meta name="description" content="Collection TCG de L'Équipage : cartes et scellé, prix Cardmarket FR.">
 <meta name="theme-color" content="#F6F6F4">
+<script>
+  // Thème choisi (clair / sombre) appliqué avant l'affichage, sinon celui du téléphone
+  try { const t = localStorage.getItem("theme"); if (t === "clair" || t === "sombre") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pixelify+Sans:wght@600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -37,7 +41,13 @@
 <div id="app" hidden>
   <header class="barre">
     <span class="marque"><img class="pixel" src="icons/embleme-112.png" alt="" width="32" height="32"><span class="marque-nom">PokeVibes</span></span>
-    <span class="profil" aria-hidden="true"><span id="initiale">?</span></span>
+    <span class="entete-droite">
+      <button id="bouton-theme" class="bouton-theme" type="button" aria-label="Passer en mode sombre">
+        <svg class="ico-lune" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+        <svg class="ico-soleil" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <span class="profil" aria-hidden="true"><span id="initiale">?</span></span>
+    </span>
   </header>
 
   <!-- Collection Pokémon ou One Piece (même gabarit) -->
@@ -227,6 +237,6 @@
   </div>
 </dialog>
 
-<script type="module" src="app.js?v=8"></script>
+<script type="module" src="app.js?v=9"></script>
 </body>
 </html>
