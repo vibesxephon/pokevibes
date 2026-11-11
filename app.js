@@ -1322,6 +1322,8 @@ function annoncer(badges) {
 }
 function badgeSuivant() {
   if ($("#deblocage").open) return;
+  // Pas d'interruption pendant un ajout : les badges gagnés attendent que la fenêtre se ferme
+  if ($("#ajout").open) { $("#ajout").addEventListener("close", () => setTimeout(badgeSuivant, 400), { once: true }); return; }
   const b = fileBadges.shift();
   if (b) montrerBadge(b, true);
 }
