@@ -1,5 +1,6 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
+import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "./badges.js?v=12";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s) => document.querySelector(s);
@@ -140,7 +141,7 @@ function entreeBlocs(racine) {
   if (!racine) return;
   let t = 0, i = 0;
   for (const el of racine.children) {
-    if (el.hidden || el.matches(".sr-only, ul, .grille-classeur, .classeur")) continue;
+    if (el.hidden || el.matches(".sr-only, ul, .grille-classeur, .classeur, .familles")) continue;
     if (el.matches("h2")) { animerTitre(el, 0); continue; }
     animer(el, "bloc", t = 150 + i++ * 120);
   }
@@ -194,20 +195,23 @@ async function afficher(session) {
   if (charge) return;
   charge = true;
   entreeApp();
-  const { data: moi } = await sb.from("membres").select("id, pseudo").eq("auth_id", session.user.id).maybeSingle();
+  const { data: moi } = await sb.from("membres").select("id, pseudo, cree_le").eq("auth_id", session.user.id).maybeSingle();
   etat.moi = moi;
   $("#mon-pseudo").textContent = moi?.pseudo ?? "toi";
   $("#initiale").textContent = (moi?.pseudo ?? "?").trim().charAt(0).toUpperCase() || "?";
-  await chargerCollection();
+  await Promise.all([chargerCollection(), chargerJournal()]);
+  verifierBadges();
 }
 
 /* ================= Données ================= */
 async function chargerCollection() {
   const { data, error } = await sb.from("ma_collection").select("*");
   if (error) { $("#classeur").innerHTML = `<p class="vide">La collection n'a pas pu être chargée : ${esc(error.message)}</p>`; return; }
+  etat.lignes = data ?? [];
   etat.toutes = fusionner(data ?? []);
   await chargerTendances(etat.toutes);
   dessinerCollection();
+  verifierBadges();
 }
 
 /* Tendance sur 30 jours : moyenne Cardmarket des 7 derniers jours comparée à celle des 30 derniers jours
@@ -393,10 +397,13 @@ function montrerVue(v) {
   $("#vue-collection").hidden = v !== "collection";
   $("#vue-equipage").hidden = v !== "equipage";
   $("#vue-classeur").hidden = v !== "classeur";
+  $("#vue-badges").hidden = v !== "badges";
+  if (v !== "badges") etat.vueAvant = v;
   scrollTo({ top: 0 });
   entreeVue(v);
   if (v === "equipage") chargerEquipage();
   else if (v === "classeur") chargerClasseur().then(() => (etat.setOuvert ? ouvrirSet(etat.setOuvert, true) : dessinerClasseurListe()));
+  else if (v === "badges") dessinerMesBadges();
   else dessinerCollection();
 }
 document.querySelectorAll(".nav-item").forEach((o) => o.addEventListener("click", () => montrerVue(o.dataset.vue)));
@@ -410,7 +417,7 @@ document.querySelectorAll(".jeu-choix").forEach((o) => o.addEventListener("click
 }));
 
 async function chargerEquipage() {
-  const { data, error } = await sb.from("vitrine").select("*");
+  const [{ data, error }, badgesMembres] = await Promise.all([sb.from("vitrine").select("*"), badgesDesMembres()]);
   if (error) { $("#membres").innerHTML = `<li class="vide">L'Équipage n'a pas pu être chargé : ${esc(error.message)}</li>`; return; }
   etat.vitrine = data ?? [];
   const parMembre = new Map();
@@ -420,7 +427,7 @@ async function chargerEquipage() {
     parMembre.set(x.pseudo, m);
   }
   $("#membres").innerHTML = [...parMembre.entries()].sort((a, b) => b[1].valeur - a[1].valeur).map(([p, m]) => `<li><button data-pseudo="${esc(p)}" aria-pressed="${p === etat.membreChoisi}">
-      <span><span class="pseudo">${esc(p)}</span><br><span class="infos">${m.objets} objets</span></span>
+      <span><span class="pseudo">${esc(p)}</span><br><span class="infos">${m.objets} objets</span>${resumeBadges(badgesMembres.get(p))}</span>
       <span class="valeur">${euro(m.valeur, 0)}</span></button></li>`).join("")
     || `<li class="vide">Personne n'a encore de collection. Partage le lien du site à L'Équipage.</li>`;
   if (aAnimer.delete("equipage")) animerListe($("#membres").children, 400, 120, "bloc");
@@ -608,7 +615,7 @@ async function prixConnus(ids) {
 const ajout = { type: "carte", choix: null };
 
 $("#bouton-ajouter").addEventListener("click", async () => {
-  ajout.choix = null;
+  ajout.choix = null; ajout.scanIA = null; ajout.opChoisi = null;
   $("#ajout-titre").textContent = `Ajouter à la collection ${NOM_JEU[etat.jeu]}`;
   $("#ajout-message").textContent = "";
   $("#carte-resultats").innerHTML = ""; $("#carte-statut").textContent = "";
@@ -783,6 +790,8 @@ $("#scan-photo").addEventListener("change", async (e) => {
   const input = e.target;
   const f = input.files?.[0]; if (!f || scanEnCours) return;
   scanEnCours = true;
+  ajout.scanIA = null;
+  noterActivite("scan");
   const statut = $("#scan-statut");
   statut.classList.add("en-cours");
   statut.textContent = "Photo reçue, préparation… 📸";
@@ -822,6 +831,7 @@ async function appliquerReconnaissance(r) {
     const types = [...$("#sc-type").options].map((o) => o.value);
     if (types.includes(r.type_scelle)) $("#sc-type").value = r.type_scelle;
     nomScelle();
+    ajout.scanIA = { type: "scelle", sig: signatureScelle() };
     return;
   }
 
@@ -834,6 +844,7 @@ async function appliquerReconnaissance(r) {
     const i = liste.findIndex((c) => motif ? motif.test(c.card_name) : !/\((Alternate|Parallel|Manga|SP|Full Art|Super|Wanted)/i.test(c.card_name));
     if (i >= 0) $(`#op-resultats .resultat[data-i="${i}"]`)?.click();
     else if (r.nom) $("#op-nom").value = r.nom;
+    ajout.scanIA = { type: "onepiece", sig: i >= 0 ? liste[i].card_name : null };
     return;
   }
 
@@ -856,6 +867,7 @@ async function appliquerReconnaissance(r) {
     .sort((a, b) => b.s - a.s).map((x) => x.c).slice(0, 40);
   $("#recherche-carte").value = r.numero ? `${r.numero}${r.total ? "/" + r.total : ""}` : (r.nom ?? "");
   await afficherResultats(classe);
+  ajout.scanIA = { type: "pokemon", sig: classe[0]?.id ?? null };
   if (classe.length) {
     $("#carte-statut").textContent = "La première carte est la proposition de l'IA. Si ce n'est pas la bonne, touche la tienne.";
     $("#carte-resultats .resultat")?.click();
@@ -931,7 +943,7 @@ async function chercherOP(saisie) {
 $("#op-resultats").addEventListener("click", (e) => {
   const b = e.target.closest(".resultat"); if (!b) return;
   const c = ajout.opListe[Number(b.dataset.i)];
-  ajout.opImage = c.card_image;
+  ajout.opImage = c.card_image; ajout.opChoisi = c.card_name;
   $("#op-nom").value = c.card_name.replace(/\s*\((Alternate Art|Parallel|Manga|SP|Full Art)\)/gi, "").replace(/\./g, " ").replace(/\s+/g, " ").trim();
   const n = c.card_name;
   $("#op-rarete").value = /Manga/i.test(n) ? "Manga" : /\(SP\)/i.test(n) ? "SP" : /(Alternate|Parallel|Full Art)/i.test(n) ? "Parallèle"
@@ -956,6 +968,8 @@ $("#bouton-valider").addEventListener("click", async () => {
     r = await sb.rpc("classeur_modifier", { p_tcgdex_id: ajout.choix.tcgdex_id, p_delta: q });
     if (r.error) { msg.textContent = `Ajout impossible : ${r.error.message}`; return; }
     msg.textContent = "Rangée dans le Classeur ✅";
+    noterIssueScan();
+    verifierBadges();
     await chargerClasseur();
     if (!$("#vue-classeur").hidden) etat.setOuvert ? ouvrirSet(etat.setOuvert) : dessinerClasseurListe();
     setTimeout(() => $("#ajout").close(), 900);
@@ -978,6 +992,7 @@ $("#bouton-valider").addEventListener("click", async () => {
   }
   if (r.error) { msg.textContent = `Ajout impossible : ${r.error.message}`; return; }
   msg.textContent = "Ajouté ✅ Le prix s'affichera après le relevé de cette nuit.";
+  noterIssueScan();
   await chargerCollection();
   setTimeout(() => $("#ajout").close(), 900);
 });
@@ -1113,7 +1128,291 @@ $("#cs-cartes").addEventListener("click", async (e) => {
   const idx = await chargerIndex(); dessinerSet(idx);
   const { error } = await sb.rpc("classeur_modifier", { p_tcgdex_id: id, p_delta: delta });
   if (error) { await chargerClasseur(); dessinerSet(idx); $("#cs-compte").textContent = `Pas enregistré : ${error.message}. Réessaie.`; }
+  else verifierBadges();
 });
+
+/* ================= Badges =================
+   Les 30 badges sont décrits dans badges.js (un seul objet de configuration).
+   Ici : le journal d'activité, le calcul des conditions, le déblocage et la page « Mes badges ».
+   Un badge gagné est enregistré dans badges_obtenus et n'est jamais retiré.
+   Si Supabase répond mal, on ne montre rien et on réessaiera à la prochaine action. */
+etat.badges = new Map(); etat.activite = []; etat.ventes = []; etat.journalPret = false; etat.donnees = null;
+const lireLocal = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const ecrireLocal = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const jourLocal = (d) => new Date(d).toLocaleDateString("fr-CA"); // AAAA-MM-JJ, à l'heure du téléphone
+
+async function chargerJournal() {
+  etat.journalPret = false;
+  try {
+    const id = etat.moi?.id; if (!id) return;
+    const [a, b, v] = await Promise.all([
+      sb.from("activite").select("type, le").eq("membre_id", id).order("le").limit(20000),
+      sb.from("badges_obtenus").select("badge_id, obtenu_le").eq("membre_id", id),
+      sb.from("ventes").select("quantite, prix_vente, prix_achat, frais").eq("membre_id", id),
+    ]);
+    if (b.error || a.error) throw b.error ?? a.error; // sans la liste des badges déjà gagnés, on ne décerne rien
+    etat.badges = new Map((b.data ?? []).map((x) => [x.badge_id, x.obtenu_le]));
+    etat.activite = a.data ?? [];
+    etat.ventes = v.error ? [] : (v.data ?? []);
+    etat.journalPret = true;
+    majAvatar();
+    // Une ouverture au plus par heure
+    const derniere = etat.activite.filter((x) => x.type === "ouverture").at(-1);
+    if (!derniere || Date.now() - new Date(derniere.le).getTime() > 36e5) noterActivite("ouverture");
+  } catch (e) { console.warn("Badges indisponibles pour l'instant :", e?.message ?? e); }
+}
+
+async function noterActivite(type, detail = null) {
+  if (!etat.moi) return;
+  etat.activite.push({ type, le: new Date().toISOString() });
+  try {
+    const { error } = await sb.from("activite").insert({ membre_id: etat.moi.id, type, detail });
+    if (error) console.warn("Activité non enregistrée :", error.message);
+  } catch (e) { console.warn("Activité non enregistrée :", e?.message ?? e); }
+  if (type !== "ouverture") verifierBadges();
+}
+
+// Scan : l'IA propose, on regarde si sa proposition est gardée au moment de valider
+const signatureScelle = () => `${$("#sc-extension").value}|${$("#sc-type").value}`;
+function noterIssueScan() {
+  const s = ajout.scanIA; ajout.scanIA = null;
+  if (!s) return;
+  const choisi = s.type === "scelle" ? (ajout.type === "scelle" ? signatureScelle() : null)
+    : s.type === "onepiece" ? ajout.opChoisi ?? null : ajout.choix?.tcgdex_id ?? null;
+  noterActivite(s.sig != null && choisi === s.sig ? "scan_reconnu" : "scan_corrige");
+}
+
+// Statistiques du Classeur (Pokémon) : progression de chaque extension
+async function statsClasseur() {
+  const r = { cartes: etat.classeur.size, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [] };
+  for (const x of etat.classeur.values()) r.quantite += x.quantite ?? 1;
+  if (!etat.classeur.size) return r;
+  try {
+    const idx = await chargerIndex();
+    for (const sid of new Set([...etat.classeur.values()].map((x) => x.set_id))) {
+      const k = compteSet(idx, sid);
+      r.meilleurePct = Math.max(r.meilleurePct, k.pct);
+      if (k.pct >= 50) r.extensions50++;
+      if (k.nbSec > 0 && k.secretes === k.nbSec) r.secretes = true;
+      if (k.set?.nom) r.noms.push(k.set.nom);
+    }
+  } catch {}
+  return r;
+}
+
+// Sniper : prix d'achat au moins 20 % sous le prix du marché le jour de l'achat
+async function compterSniper() {
+  const lignes = (etat.lignes ?? []).filter((x) => x.achete_le && Number(x.prix_achat) > 0);
+  if (!lignes.length) return 0;
+  const cle = lignes.map((x) => `${x.produit_id}@${x.achete_le}`).sort().join(",");
+  if (etat.sniperCache?.cle === cle) return etat.sniperCache.n;
+  const { data, error } = await sb.from("prix").select("produit_id, le, prix, etat_prix")
+    .in("produit_id", [...new Set(lignes.map((x) => x.produit_id))]).eq("valide", true).order("le");
+  if (error) return 0;
+  let n = 0;
+  for (const x of lignes) {
+    const h = (data ?? []).filter((p) => p.produit_id === x.produit_id && p.etat_prix === (x.defaut ? "defaut" : "standard"));
+    const avant = h.filter((p) => p.le <= x.achete_le).at(-1);
+    const apres = h.find((p) => p.le > x.achete_le && (new Date(p.le) - new Date(x.achete_le)) <= 7 * 864e5);
+    const marche = Number((avant ?? apres)?.prix);
+    if (marche > 0 && Number(x.prix_achat) <= marche * 0.8) n++;
+  }
+  etat.sniperCache = { cle, n };
+  return n;
+}
+
+function donneesBadges(cl, sniper) {
+  const a = etat.activite, lignes = etat.lignes ?? [], maintenant = Date.now();
+  const somme = (l) => l.reduce((t, x) => t + (Number(x.quantite) || 0), 0);
+  const scans = a.filter((x) => x.type === "scan");
+  const parJour = new Map();
+  for (const x of scans) { const j = jourLocal(x.le); parJour.set(j, (parJour.get(j) ?? 0) + 1); }
+  let suite = 0, meilleureSuite = 0;
+  for (const x of a) {
+    if (x.type === "scan_reconnu") meilleureSuite = Math.max(meilleureSuite, ++suite);
+    else if (x.type === "scan_corrige") suite = 0;
+  }
+  const cartes = lignes.filter((x) => x.categorie === "carte");
+  const ouvertures = [...a.filter((x) => x.type === "ouverture").map((x) => new Date(x.le)), new Date()];
+  const gains = lignes.filter((x) => Number(x.prix_achat) > 0 && x.prix_actuel != null).map((x) => (Number(x.prix_actuel) / Number(x.prix_achat) - 1) * 100);
+  const achats = lignes.filter((x) => x.achete_le).map((x) => Math.floor((maintenant - new Date(x.achete_le)) / 864e5));
+  const extensions = new Set([...cartes.map((x) => x.extension).filter(Boolean), ...cl.noms].map(sansAccent));
+  return {
+    scans: scans.length,
+    scansJourMax: Math.max(0, ...parJour.values()),
+    reconnusSuite: meilleureSuite,
+    cartes: somme(cartes),
+    scelles: somme(lignes.filter((x) => x.categorie === "scelle")),
+    prixMax: Math.max(0, ...cartes.map((x) => Number(x.prix_actuel) || 0)),
+    classeurCartes: cl.cartes, meilleurePct: cl.meilleurePct, extensions50: cl.extensions50, secretesCompletes: cl.secretes,
+    extensions: extensions.size,
+    cartesPokemon: somme(cartes.filter((x) => x.jeu === "pokemon")) + cl.quantite,
+    cartesOnePiece: somme(cartes.filter((x) => x.jeu === "onepiece")),
+    gainMaxPct: gains.length ? Math.max(...gains) : -100,
+    sniper,
+    detentionJours: Math.max(0, ...achats),
+    ventes: etat.ventes.length,
+    ventesGagnantes: etat.ventes.filter((v) => v.prix_achat != null && Number(v.prix_vente) * (v.quantite ?? 1) > Number(v.prix_achat) * (v.quantite ?? 1) + Number(v.frais ?? 0)).length,
+    heures: ouvertures.map((d) => d.getHours()),
+    joursOuverture: new Set(ouvertures.map(jourLocal)).size,
+    anciennete: etat.moi?.cree_le ? maintenant - new Date(etat.moi.cree_le).getTime() : 0,
+  };
+}
+const mesurer = (b, d) => { try { return Number(b.mesure(d)) || 0; } catch { return 0; } };
+
+// Vérification : au chargement et après chaque action (regroupée pour ne pas surcharger)
+let minuterieBadges = 0, verifEnCours = false, verifRelance = false;
+function verifierBadges() { clearTimeout(minuterieBadges); minuterieBadges = setTimeout(lancerVerification, 400); }
+async function lancerVerification() {
+  if (!etat.moi || !etat.journalPret) return;
+  if (verifEnCours) { verifRelance = true; return; }
+  verifEnCours = true;
+  try {
+    await chargerClasseur().catch(() => {});
+    const [cl, sniper] = await Promise.all([statsClasseur(), compterSniper().catch(() => 0)]);
+    const d = etat.donnees = donneesBadges(cl, sniper);
+    const nouveaux = BADGES.filter((b) => !etat.badges.has(b.id) && mesurer(b, d) >= b.cible);
+    const cleInit = `badges-init-${etat.moi.id}`;
+    const premierLancement = etat.badges.size === 0 && !lireLocal(cleInit);
+    if (nouveaux.length) {
+      const le = new Date().toISOString();
+      const { error } = await sb.from("badges_obtenus")
+        .upsert(nouveaux.map((b) => ({ membre_id: etat.moi.id, badge_id: b.id, obtenu_le: le })), { onConflict: "membre_id,badge_id", ignoreDuplicates: true });
+      if (error) throw error;
+      nouveaux.forEach((b) => etat.badges.set(b.id, le));
+      if (premierLancement) message(`Tu as déjà gagné ${nouveaux.length} badge${nouveaux.length > 1 ? "s" : ""} ! Retrouve-les en touchant ton avatar.`);
+      else annoncer(nouveaux);
+    }
+    ecrireLocal(cleInit, "1");
+    majAvatar();
+    if (!$("#vue-badges").hidden) dessinerMesBadges();
+  } catch (e) { console.warn("Vérification des badges reportée :", e?.message ?? e); }
+  finally {
+    verifEnCours = false;
+    if (verifRelance) { verifRelance = false; verifierBadges(); }
+  }
+}
+
+function majAvatar() {
+  $("#bouton-badges").setAttribute("aria-label", `Mes badges : ${etat.badges.size} sur ${BADGES.length}`);
+}
+
+// Message bref (premier lancement)
+let minuterieMessage = 0;
+function message(texte) {
+  const t = $("#toast");
+  t.textContent = texte; t.hidden = false;
+  animer(t, "bouton", 0);
+  clearTimeout(minuterieMessage);
+  minuterieMessage = setTimeout(() => { t.hidden = true; }, 6000);
+}
+
+/* ---------- Déblocage : plein écran, un badge après l'autre ---------- */
+const fileBadges = [];
+function annoncer(badges) {
+  fileBadges.push(...[...badges].sort((a, b) => RARETES_BADGES[a.rarete].rang - RARETES_BADGES[b.rarete].rang));
+  if ($("#deblocage").open) return;
+  // On laisse finir l'animation d'ouverture avant d'interrompre
+  setTimeout(badgeSuivant, Math.max(300, debutEntree + 3000 - performance.now()));
+}
+function badgeSuivant() {
+  if ($("#deblocage").open) return;
+  const b = fileBadges.shift();
+  if (b) montrerBadge(b, true);
+}
+$("#deblocage").addEventListener("close", () => { if (fileBadges.length) setTimeout(badgeSuivant, 350); });
+
+const dateLongue = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+const dateCourte = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+function progres(b) {
+  if (!b.unite || !etat.donnees) return "";
+  return `${Math.min(mesurer(b, etat.donnees), b.cible)} / ${b.cible}${b.unite === "%" ? " %" : ` ${b.unite}`}`;
+}
+const masque = (b) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" overflow="visible">${b.dessin}</svg>`)}")`;
+
+function montrerBadge(b, deblocage = false) {
+  const obtenu = etat.badges.get(b.id), cache = b.secret && !obtenu, rarete = RARETES_BADGES[b.rarete];
+  const c = $("#deb-contenu");
+  c.innerHTML = `
+    <div class="deb-badge ${obtenu ? "" : "verrouille"}">
+      <div class="deb-svg">${svgBadge(b, { verrouille: cache, label: cache ? "Badge secret" : undefined })}</div>
+      ${obtenu && b.rarete === "holo" ? `<span class="reflet" style='--masque:${masque(b)}'></span>` : ""}
+    </div>
+    <p class="deb-statut">${deblocage ? "Nouveau badge débloqué" : obtenu ? `Obtenu le ${dateLongue(obtenu)}` : "Pas encore obtenu"}</p>
+    <h2 id="deb-nom">${cache ? "???" : esc(b.nom)}</h2>
+    <span class="rarete rarete-${b.rarete}">${rarete.nom} · ${esc(b.famille)}</span>
+    <p class="deb-condition">${cache ? "Badge secret : continue d'utiliser PokeVibes pour le découvrir." : esc(b.condition)}</p>
+    ${!obtenu && !cache && progres(b) ? `<p class="deb-progres">${progres(b)}</p>` : ""}
+    <form method="dialog"><button class="bouton-principal" autofocus>${deblocage ? "Super" : "Fermer"}</button></form>`;
+  preparerRoll(c.querySelector(".bouton-principal"));
+  $("#deblocage").showModal();
+  // Animation de la référence : de petit, penché et flou à un léger rebond, puis taille normale
+  debutEntree = performance.now();
+  const badge = c.querySelector(".deb-badge");
+  if (calme) animer(badge, "bloc", 0);
+  else if (deblocage) badge.animate([
+    { transform: "scale(.3) rotate(-25deg)", filter: "blur(6px)", opacity: 0 },
+    { transform: "scale(1.18) rotate(4deg)", filter: "blur(0)", opacity: 1, offset: .65 },
+    { transform: "scale(1) rotate(0)", opacity: 1 }], { duration: 1100, easing: EZ, fill: "backwards" });
+  else animer(badge, "embleme", 0);
+  [".deb-statut", "#deb-nom", ".rarete", ".deb-condition", ".deb-progres", "form"].forEach((s, i) => animer(c.querySelector(s), "bloc", (deblocage ? 500 : 150) + i * 110));
+}
+
+/* ---------- Page « Mes badges » ---------- */
+$("#bouton-badges").addEventListener("click", () => montrerVue("badges"));
+$("#badges-retour").addEventListener("click", () => montrerVue(etat.vueAvant ?? "collection"));
+function dessinerMesBadges() {
+  const n = BADGES.filter((b) => etat.badges.has(b.id)).length;
+  $("#badges-nb").textContent = n;
+  $("#badges-total").textContent = `/ ${BADGES.length}`;
+  $("#badges-barre").style.width = `${(n / BADGES.length) * 100}%`;
+  $("#badges-familles").innerHTML = FAMILLES.map((f) => {
+    const l = BADGES.filter((b) => b.famille === f); if (!l.length) return "";
+    const nf = l.filter((b) => etat.badges.has(b.id)).length;
+    return `<section class="famille"><h3 class="sous-titre">${esc(f)} <span>${nf} / ${l.length}</span></h3><div class="grille-badges">${l.map((b) => {
+      const obtenu = etat.badges.get(b.id), cache = b.secret && !obtenu, p = progres(b);
+      const etatTexte = obtenu ? dateCourte(obtenu) : cache ? "Secret" : p || RARETES_BADGES[b.rarete].nom;
+      const pct = !obtenu && b.unite && etat.donnees ? Math.min(100, (mesurer(b, etat.donnees) / b.cible) * 100) : null;
+      const lu = cache ? "Badge secret, pas encore découvert"
+        : `${b.nom}, ${RARETES_BADGES[b.rarete].nom}, ${obtenu ? `obtenu le ${dateLongue(obtenu)}` : `pas encore obtenu${p ? ` : ${p}` : ""}`}`;
+      return `<button type="button" class="badge-item ${obtenu ? "obtenu" : "verrouille"}" data-badge="${b.id}" aria-label="${esc(lu)}">
+        <span class="badge-svg" aria-hidden="true">${svgBadge(b, { verrouille: cache })}</span>
+        <span class="badge-nom">${cache ? "???" : esc(b.nom)}</span>
+        <span class="badge-etat">${esc(etatTexte)}</span>
+        ${pct != null && !cache ? `<span class="barre-prog" aria-hidden="true"><span style="width:${pct}%"></span></span>` : ""}
+      </button>`;
+    }).join("")}</div></section>`;
+  }).join("");
+  if (aAnimer.delete("badges")) {
+    $("#badges-familles").querySelectorAll(".famille h3, .badge-item").forEach((el, i) => animer(el, el.matches("h3") ? "bloc" : "carte", 300 + Math.min(i, 14) * 70));
+  }
+}
+$("#badges-familles").addEventListener("click", (e) => {
+  const b = e.target.closest(".badge-item"); if (b) montrerBadge(BADGES.find((x) => x.id === b.dataset.badge));
+});
+
+/* ---------- L'Équipage : nombre de badges et les 3 plus rares ---------- */
+async function badgesDesMembres() {
+  const parPseudo = new Map();
+  try {
+    const [o, m] = await Promise.all([sb.from("badges_obtenus").select("membre_id, badge_id, obtenu_le"), sb.from("membres").select("id, pseudo")]);
+    if (o.error || m.error) return parPseudo;
+    const pseudo = new Map((m.data ?? []).map((x) => [x.id, x.pseudo]));
+    for (const x of o.data ?? []) {
+      const b = BADGES.find((y) => y.id === x.badge_id), p = pseudo.get(x.membre_id);
+      if (!b || !p) continue;
+      if (!parPseudo.has(p)) parPseudo.set(p, []);
+      parPseudo.get(p).push({ b, le: x.obtenu_le });
+    }
+  } catch {}
+  return parPseudo;
+}
+function resumeBadges(l) {
+  if (!l?.length) return "";
+  const rares = [...l].sort((x, y) => RARETES_BADGES[y.b.rarete].rang - RARETES_BADGES[x.b.rarete].rang || new Date(x.le) - new Date(y.le)).slice(0, 3);
+  return `<span class="badges-membre" role="img" aria-label="${l.length} badge${l.length > 1 ? "s" : ""}, dont ${esc(rares.map((x) => x.b.nom).join(", "))}">
+    ${rares.map((x) => svgBadge(x.b).replace('role="img"', 'aria-hidden="true"')).join("")}<span class="infos">${l.length} badge${l.length > 1 ? "s" : ""}</span></span>`;
+}
 
 /* ================= Mode sombre ================= */
 const sombreSysteme = matchMedia("(prefers-color-scheme: dark)");

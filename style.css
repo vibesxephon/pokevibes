@@ -444,3 +444,78 @@ img { max-width: 100%; }
 }
 
 .jauge span { transition-timing-function: cubic-bezier(.16, 1, .3, 1); }
+
+/* ---------- Badges (référence : docs/badges-reference.html) ----------
+   Autocollants : le liseré blanc est souligné d'une ombre fine, pour rester visible sur le fond clair. */
+.profil { border: 0; padding: 0; cursor: pointer; }
+.badge-svg svg, .deb-svg svg, .badges-membre svg {
+  display: block; overflow: visible;
+  filter: drop-shadow(0 0 .6px rgba(0, 0, 0, .45)) drop-shadow(0 2px 3px rgba(0, 0, 0, .16));
+}
+.rarete { display: inline-block; padding: 2px 10px; border-radius: 99px; font: 600 .78rem var(--titre); color: #1C1C1C; }
+.rarete-bronze { background: #C98A4B; }
+.rarete-argent { background: #C3C7CF; }
+.rarete-holo { background: linear-gradient(90deg, #A8F0FF, #E3B6FF, #FFF2A8); }
+.rarete-secret { background: #3B3F8F; color: #F2C200; }
+
+/* Mes badges */
+.badges-compteur { margin: 0 0 8px; }
+.badges-compteur p { margin: 0 0 8px; font: 500 1.1rem var(--titre); color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.badges-compteur strong { font: 700 2.6rem/1 var(--titre); color: var(--encre); letter-spacing: -.02em; }
+.badges-compteur .barre-prog { height: 8px; background: var(--surface); }
+.famille h3 span { color: var(--gris); font-weight: 500; font-variant-numeric: tabular-nums; }
+.grille-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px 8px; }
+.badge-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0;
+  padding: 14px 6px 10px; border: 0; border-radius: var(--rayon); background: var(--pochette);
+  cursor: pointer; text-align: center; color: var(--encre);
+}
+.badge-svg svg { width: 60px; height: 60px; margin-bottom: 4px; }
+.badge-item.verrouille .badge-svg svg { filter: grayscale(1) opacity(.42) drop-shadow(0 0 .6px rgba(0, 0, 0, .45)); }
+.badge-nom { font: 600 .8rem/1.2 var(--titre); }
+.badge-etat { font-size: .7rem; line-height: 1.3; color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.badge-item .barre-prog { width: 70%; height: 4px; margin-top: 2px; }
+
+/* Déblocage plein écran */
+.deblocage {
+  width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: var(--carton); color: var(--encre);
+}
+.deblocage[open] { display: grid; place-items: center; }
+.deblocage::backdrop { background: var(--carton); }
+.deb-contenu { width: min(360px, 100%); display: flex; flex-direction: column; align-items: center; text-align: center; }
+.deb-badge { position: relative; width: 172px; height: 172px; margin-bottom: 26px; }
+.deb-svg svg { width: 100%; height: 100%; }
+.deb-badge.verrouille .deb-svg svg { filter: grayscale(1) opacity(.42) drop-shadow(0 0 .6px rgba(0, 0, 0, .45)); }
+.deb-statut { margin: 0 0 6px; font-size: .9rem; color: var(--encre-douce); }
+.deb-contenu h2 { margin: 0 0 10px; font: 700 2rem/1.1 var(--titre); letter-spacing: -.02em; text-wrap: balance; }
+.deb-condition { margin: 14px 0 0; color: var(--encre-douce); text-wrap: balance; }
+.deb-progres { margin: 8px 0 0; font: 600 .95rem var(--titre); font-variant-numeric: tabular-nums; }
+.deb-contenu form { width: 100%; }
+.deb-contenu .bouton-principal { margin-top: 28px; }
+/* Reflet holo : une bande irisée passe sur la silhouette du badge */
+.reflet {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  -webkit-mask: var(--masque) center / contain no-repeat; mask: var(--masque) center / contain no-repeat;
+}
+.reflet::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -100%; width: 100%;
+  background: linear-gradient(105deg, transparent 20%, rgba(168, 240, 255, .55) 40%, rgba(255, 255, 255, .9) 50%, rgba(227, 182, 255, .55) 60%, transparent 80%);
+  animation: reflet-holo 2.8s cubic-bezier(.16, 1, .3, 1) 1.1s infinite;
+}
+@keyframes reflet-holo { 0% { transform: translateX(0); } 55%, 100% { transform: translateX(200%); } }
+@media (prefers-reduced-motion: reduce) { .reflet { display: none; } }
+
+/* L'Équipage : badges de chaque membre */
+.badges-membre { display: flex; align-items: center; gap: 3px; margin-top: 8px; }
+.badges-membre svg { width: 24px; height: 24px; }
+.badges-membre .infos { margin-left: 4px; }
+
+/* Message bref (premier lancement) */
+.toast {
+  position: fixed; left: 16px; right: 16px; z-index: 8; margin: 0 auto; max-width: 420px;
+  bottom: calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));
+  padding: 12px 16px; border-radius: 14px; background: var(--encre); color: var(--carton);
+  font-weight: 500; text-align: center; box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+}
