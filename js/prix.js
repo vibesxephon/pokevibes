@@ -1,5 +1,5 @@
 /* PokeVibes — prix, valeur, plus-value et tendance 30 jours (calculs purs, testés dans tests/prix.test.js). */
-import { euro } from "./format.js?v=14";
+import { euro } from "./format.js?v=15";
 
 // Un même produit acheté à des prix différents (ex. 3 ETB 30 Ans) = une seule pochette
 export function fusionner(lignes) {
@@ -61,14 +61,26 @@ export function etiquetteTendance(t, court = false) {
 
 export const parPrix = (a, b) => Number(b.prix_actuel ?? -1) - Number(a.prix_actuel ?? -1);
 
-// Courbe des prix (fiche carte)
-export function courbe(points) {
-  if (points.length < 2) return `<div class="historique"><p>L'historique des prix se construit à chaque relevé.</p></div>`;
-  const v = points.map((p) => Number(p.prix)), min = Math.min(...v), max = Math.max(...v), w = 300, h = 60;
-  const xy = v.map((y, i) => `${(i / (v.length - 1)) * w},${max === min ? h / 2 : h - ((y - min) / (max - min)) * h}`).join(" ");
-  return `<div class="historique">
-    <svg viewBox="-4 -4 ${w + 8} ${h + 8}" preserveAspectRatio="none" role="img" aria-label="Évolution du prix de ${euro(v[0])} à ${euro(v.at(-1))}">
-      <polyline points="${xy}" pathLength="1" fill="none" stroke="currentColor" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
-    </svg>
-    <p>${points.length} relevés, de ${euro(min)} à ${euro(max)}</p></div>`;
+/* Graphique de l'historique (fiche carte). points : [{ le: "AAAA-MM-JJ", prix }] triés, au moins 2.
+   Abscisse proportionnelle aux dates ; une marge en haut et en bas pour que la courbe ne touche pas les bords.
+   Le dernier prix est marqué par un point (en HTML, pour rester rond quelle que soit la largeur). */
+export function graphique(points, { titre = "" } = {}) {
+  const W = 320, H = 120, marge = 0.12;
+  const t = points.map((p) => new Date(p.le).getTime()), v = points.map((p) => Number(p.prix));
+  const t0 = t[0], t1 = t.at(-1), min = Math.min(...v), max = Math.max(...v);
+  const x = (i) => (t1 === t0 ? (i / Math.max(1, points.length - 1)) : (t[i] - t0) / (t1 - t0)) * W;
+  const y = (i) => (max === min ? H / 2 : H * (1 - marge - (1 - 2 * marge) * ((v[i] - min) / (max - min))));
+  const r = (n) => Math.round(n * 10) / 10;
+  const xy = points.map((_, i) => `${r(x(i))},${r(y(i))}`).join(" ");
+  const aire = `M${r(x(0))},${H} L${xy.replace(/ /g, " L")} L${r(x(points.length - 1))},${H} Z`;
+  const jour = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  const hausse = v.at(-1) >= v[0];
+  return `<div class="graphe-zone ${hausse ? "hausse" : "baisse"}">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution du prix${titre ? ` ${titre}` : ""} : de ${euro(v[0])} le ${jour(points[0].le)} à ${euro(v.at(-1))} le ${jour(points.at(-1).le)}">
+        <path class="graphe-aire" d="${aire}"/>
+        <polyline class="graphe-ligne" points="${xy}" pathLength="1" fill="none" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <span class="graphe-point" style="left:${r((x(points.length - 1) / W) * 100)}%;top:${r((y(points.length - 1) / H) * 100)}%" aria-hidden="true"></span>
+    </div>
+    <div class="graphe-axe" aria-hidden="true"><span>${jour(points[0].le)}</span><span>${points.length} relevés</span><span>${jour(points.at(-1).le)}</span></div>`;
 }

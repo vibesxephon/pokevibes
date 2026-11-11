@@ -1,6 +1,6 @@
 /* PokeVibes — recherche dans l'index local des cartes Pokémon FR (pure, testable).
    Sans accents, plusieurs mots-clés, numéro seul (« 191 » = toutes les cartes 191/x et x/191), « nom + numéro »… */
-import { cleNum, sansAccent } from "./format.js?v=14";
+import { cleNum, sansAccent } from "./format.js?v=15";
 
 export function rechercheLocale(idx, q) {
   const brut = String(q ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");

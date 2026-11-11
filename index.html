@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 
@@ -109,6 +109,10 @@
         <div class="barre-prog" aria-hidden="true"><span id="cs-barre"></span></div>
         <p id="cs-compte"></p>
       </div>
+      <div class="puces cs-mode" id="cs-mode" role="group" aria-label="Toucher une carte pour">
+        <button aria-pressed="true" data-val="cocher">Cocher</button>
+        <button aria-pressed="false" data-val="fiche">Voir la fiche</button>
+      </div>
       <div class="puces" id="cs-filtre" role="group" aria-label="Afficher">
         <button aria-pressed="true" data-val="">Toutes</button>
         <button aria-pressed="false" data-val="manque">Manquantes</button>
@@ -125,6 +129,22 @@
     <p class="intro-vue">Les collections de chacun, sans les prix d'achat.</p>
     <ul id="membres" class="membres"></ul>
     <div id="vitrine" class="classeur"></div>
+  </section>
+
+  <!-- Wishlist : les cartes guettées (étoile de la fiche) -->
+  <section id="vue-wishlist" class="vue" hidden>
+    <h2 class="titre-vue">Wishlist</h2>
+    <p class="intro-vue">Les cartes que tu guettes : leur prix, leur tendance et tes alertes.</p>
+    <div class="wishlist-barre" id="wishlist-barre">
+      <p id="wishlist-compte" class="wishlist-compte"></p>
+      <label for="wishlist-tri" class="sr-only">Trier la Wishlist</label>
+      <select id="wishlist-tri">
+        <option value="ajout">Ajoutées récemment</option>
+        <option value="prix">Par prix</option>
+        <option value="tendance">Par tendance 30 jours</option>
+      </select>
+    </div>
+    <ul id="wishlist" class="wishlist" aria-live="polite"></ul>
   </section>
 
   <!-- Mes badges (ouverte depuis l'avatar) -->
@@ -154,6 +174,9 @@
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M12 9v6M9 12h6"/></svg>
       <span class="scan-libelle" aria-hidden="true">Scanner une carte</span>
     </button>
+    <button class="nav-item" data-vue="wishlist">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>
+      Wishlist</button>
     <button class="nav-item" data-vue="equipage">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><circle cx="17" cy="10" r="2.6"/><path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5M15 15.2c2.5-.4 4.6.9 5.5 3.8"/></svg>
       L'Équipage</button>
@@ -175,6 +198,28 @@
 </dialog>
 
 <p id="toast" class="toast" role="status" hidden></p>
+
+<!-- Alerte de prix (depuis la fiche d'une carte) -->
+<dialog id="alerte" class="fiche fenetre-alerte" aria-labelledby="alerte-titre">
+  <form method="dialog"><button class="fermer" aria-label="Fermer">×</button></form>
+  <h2 id="alerte-titre">Alerte de prix</h2>
+  <p id="alerte-carte" class="alerte-carte"></p>
+  <form id="form-alerte" novalidate>
+    <p class="alerte-phrase" id="alerte-phrase">Prévenez-moi quand le prix passe</p>
+    <div class="puces alerte-sens" id="alerte-sens" role="group" aria-labelledby="alerte-phrase">
+      <button type="button" aria-pressed="true" data-val="dessous">en dessous de</button>
+      <button type="button" aria-pressed="false" data-val="dessus">au-dessus de</button>
+    </div>
+    <label for="alerte-seuil" class="sr-only">Seuil en euros</label>
+    <div class="champ-euro"><input id="alerte-seuil" type="number" min="0.01" step="0.01" inputmode="decimal" required><span aria-hidden="true">€</span></div>
+    <p id="alerte-avis" class="aide alerte-avis"></p>
+    <p class="aide alerte-discord">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
+      L'alerte sera publiée dans le salon Discord de L'Équipage.</p>
+    <button type="submit" id="alerte-valider" class="bouton-principal">Créer l'alerte</button>
+    <p id="alerte-message" class="message" role="status"></p>
+  </form>
+</dialog>
 
 <!-- Ajout d'une carte ou de scellé -->
 <dialog id="ajout" class="fiche ajout">
@@ -280,6 +325,6 @@
   </div>
 </dialog>
 
-<script type="module" src="app.js?v=14"></script>
+<script type="module" src="app.js?v=15"></script>
 </body>
 </html>

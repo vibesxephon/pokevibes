@@ -14,9 +14,10 @@ const carte = (o) => ({ categorie: "carte", jeu: "pokemon", quantite: 1, prix_ac
 const stats = (o) => ({ cartes: 0, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [], ...o });
 const repete = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 
-test("configuration : 30 badges complets, identifiants uniques, 7 familles", () => {
-  assert.equal(BADGES.length, 30);
-  assert.equal(new Set(BADGES.map((b) => b.id)).size, 30);
+test("configuration : 33 badges complets, identifiants uniques, 8 familles", () => {
+  assert.equal(BADGES.length, 33);
+  assert.equal(new Set(BADGES.map((b) => b.id)).size, 33);
+  assert.deepEqual(FAMILLES, ["Scanner", "Collection", "Scellé", "Classeur", "Explorateur", "Investisseur", "Wishlist", "Secrets"]);
   for (const b of BADGES) {
     assert.ok(FAMILLES.includes(b.famille), `${b.id} : famille`);
     assert.ok(RARETES[b.rarete], `${b.id} : rareté`);
@@ -142,6 +143,19 @@ test("Ventes : première vente, plus-value frais compris", () => {
   assert.ok(gagne("plus-value", { ventes: [{ quantite: 1, prix_vente: 30, prix_achat: 20, frais: 9 }] }));
   assert.ok(gagne("plus-value", { ventes: [{ quantite: 3, prix_vente: 10, prix_achat: 8, frais: 5 }] })); // 30 > 24 + 5
   assert.ok(!gagne("plus-value", { ventes: [{ quantite: 1, prix_vente: 30, prix_achat: null, frais: 0 }] })); // prix d'achat inconnu
+});
+
+test("Wishlist : premier vœu, sentinelle (5 alertes), bonne affaire", () => {
+  assert.ok(!gagne("premier-voeu", {}));
+  assert.ok(gagne("premier-voeu", { favoris: [{ tcgdex_id: "sv1-3" }] }));
+  const alertes = (n) => repete(n, (i) => ({ produit_id: i, sens: "dessous", seuil: 5, active: true }));
+  assert.ok(!gagne("sentinelle", { alertes: alertes(4) }));
+  assert.ok(gagne("sentinelle", { alertes: alertes(5) }));
+  const declenchee = [{ produit_id: 3, sens: "dessous", seuil: 5, active: false, declenchee_le: new Date(MIDI - 3 * jour).toISOString() }];
+  assert.ok(gagne("bonne-affaire", { alertes: declenchee, lignes: [carte({ produit_id: 3, achete_le: new Date(MIDI - jour).toISOString().slice(0, 10) })] }));
+  assert.ok(!gagne("bonne-affaire", { alertes: declenchee, lignes: [carte({ produit_id: 3, achete_le: new Date(MIDI - 9 * jour).toISOString().slice(0, 10) })] }));
+  // une alerte en pause (créée puis jamais déclenchée) ne suffit pas
+  assert.ok(!gagne("bonne-affaire", { alertes: alertes(1), lignes: [carte({ produit_id: 0, achete_le: "2026-11-10" })] }));
 });
 
 test("Secrets : heures d'ouverture (2 h–5 h, 5 h–7 h)", () => {

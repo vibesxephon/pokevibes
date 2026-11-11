@@ -1,9 +1,9 @@
 /* PokeVibes — Collection : chargement, couverture (valeur, plus-value), filtres et pochettes. */
-import { $, calme, esc, euro, NOM_JEU, pct } from "./commun.js?v=14";
-import { etat, sb } from "./etat.js?v=14";
-import { etiquetteTendance, fusionner, parPrix, tendanceDepuisDetail, tendanceMoyenne, totaux } from "./prix.js?v=14";
-import { aAnimer, courbeEZ, entreeCartes, restant, rythme } from "./animations.js?v=14";
-import { verifierBadges } from "./badges-ui.js?v=14";
+import { $, calme, esc, euro, NOM_JEU, pct } from "./commun.js?v=15";
+import { etat, sb } from "./etat.js?v=15";
+import { etiquetteTendance, fusionner, parPrix, tendanceDepuisDetail, tendanceMoyenne, totaux } from "./prix.js?v=15";
+import { aAnimer, courbeEZ, entreeCartes, restant, rythme } from "./animations.js?v=15";
+import { verifierBadges } from "./badges-ui.js?v=15";
 
 /* ================= Données ================= */
 export async function chargerCollection() {

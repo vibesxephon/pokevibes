@@ -1,7 +1,7 @@
 // Valeur totale, gain / perte, tendance 30 jours.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fusionner, totaux, tendanceDepuisDetail, tendanceMoyenne, etiquetteTendance, courbe } from "../js/prix.js";
+import { fusionner, totaux, tendanceDepuisDetail, tendanceMoyenne, etiquetteTendance, graphique } from "../js/prix.js";
 import { euro, pct } from "../js/format.js";
 
 // Une ligne de ma_collection = un achat (valeur = prix actuel × quantité, cout = prix d'achat × quantité)
@@ -97,9 +97,14 @@ test("étiquette de tendance : stable sous 2 %, sinon hausse ou baisse arrondie"
   assert.equal(etiquetteTendance(null), "");
 });
 
-test("courbe des prix : message si moins de 2 relevés, sinon de premier à dernier prix", () => {
-  assert.match(courbe([{ prix: 10 }]), /se construit/);
-  const c = courbe([{ prix: 10 }, { prix: 30 }, { prix: 20 }]);
-  assert.match(espaces(c), /de 10,00 € à 20,00 €/);
-  assert.match(espaces(c), /3 relevés, de 10,00 € à 30,00 €/);
+test("graphique de l'historique : du premier au dernier prix, abscisse selon les dates", () => {
+  const g = espaces(graphique([{ le: "2026-11-01", prix: 10 }, { le: "2026-11-02", prix: 30 }, { le: "2026-11-11", prix: 20 }], { titre: "sur 30 jours" }));
+  assert.match(g, /Évolution du prix sur 30 jours : de 10,00 € le 1 nov\. à 20,00 € le 11 nov\./);
+  assert.match(g, /3 relevés/);
+  // 2 nov. est à 1/10 de la largeur (320) : x = 32 ; le prix max (30) est en haut, à la marge (12 % de 120)
+  assert.match(g, /points="0,105\.6 32,14\.4 320,60"/);
+  assert.match(g, /class="graphe-zone hausse"/);
+  assert.match(graphique([{ le: "2026-11-01", prix: 30 }, { le: "2026-11-02", prix: 20 }]), /graphe-zone baisse/);
+  // prix constant : ligne au milieu
+  assert.match(graphique([{ le: "2026-11-01", prix: 5 }, { le: "2026-11-03", prix: 5 }]), /points="0,60 320,60"/);
 });

@@ -1,5 +1,5 @@
 /* PokeVibes — Animations d'entrée (référence : docs/animation-reference.html) et « text roll ». */
-import { $, calme, esc, PC } from "./commun.js?v=14";
+import { $, calme, esc, PC } from "./commun.js?v=15";
 
 /* ================= Animations d'entrée =================
    Référence validée : docs/animation-reference.html (inspiration vastworld.ai).
@@ -165,11 +165,16 @@ export function entreeCartes(racine, t) {
 export function entreeFiche() {
   rythme.debut = performance.now();
   const f = $("#fiche-contenu");
-  animer(f.querySelector(".fiche-haut .visuel"), "carte", 0);
-  animerTitre(f.querySelector(".fiche-haut h2"), 150);
+  animer(f.querySelector(".fiche-visuel"), "carte", 0);
+  animerTitre(f.querySelector(".fiche-tete h2"), 150);
   let t = 350;
-  f.querySelectorAll(".fiche-haut .infos, .fiche-haut .defaut, :scope > dl, :scope > .alerte, :scope > .historique, :scope > p:not(.message), :scope > details")
-    .forEach((el) => { animer(el, "bloc", t); if (el.matches(".historique")) dessinerCourbe(el.querySelector("svg"), t + 200); t += 120; });
+  f.querySelectorAll(".fiche-ref, .fiche-tete .defaut, :scope > div:not([hidden]), :scope > section, :scope > dl, :scope > .alerte, :scope > p:not(.message), :scope > details")
+    .forEach((el) => {
+      if (!el.children.length && !el.textContent.trim()) return;
+      animer(el, "bloc", t);
+      if (el.querySelector(".graphe-zone")) dessinerCourbe(el.querySelector(".graphe-zone svg"), t + 200);
+      t += 110;
+    });
 }
 
 // « Text roll » sur les liens de la barre latérale (PC seulement : rien ne change sur iPhone)

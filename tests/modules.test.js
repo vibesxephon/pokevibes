@@ -52,7 +52,7 @@ test("index.html charge style.css et app.js à la même version", () => {
   assert.match(html, new RegExp(`<script type="module" src="app\\.js\\?v=${VERSION}"`));
 });
 
-const PURS = ["js/format.js", "js/prix.js", "js/progression.js", "js/recherche.js", "js/badges-regles.js", "badges.js"];
+const PURS = ["js/format.js", "js/prix.js", "js/progression.js", "js/recherche.js", "js/suivi.js", "js/badges-regles.js", "badges.js"];
 
 test("les modules de calcul n'importent que d'autres modules de calcul", () => {
   for (const f of PURS) for (const { spec } of importsDe(f)) assert.ok(PURS.includes(cible(f, spec)), `${f} importe ${spec}, qui n'est pas un module de calcul`);

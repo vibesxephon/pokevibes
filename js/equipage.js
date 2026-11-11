@@ -1,9 +1,9 @@
 /* PokeVibes — L'Équipage : les collections de chacun. */
-import { $, esc, euro, NOM_JEU } from "./commun.js?v=14";
-import { etat, sb } from "./etat.js?v=14";
-import { aAnimer, animerListe, entreeCartes, rythme } from "./animations.js?v=14";
-import { grouper } from "./collection.js?v=14";
-import { badgesDesMembres, resumeBadges } from "./badges-ui.js?v=14";
+import { $, esc, euro, NOM_JEU } from "./commun.js?v=15";
+import { etat, sb } from "./etat.js?v=15";
+import { aAnimer, animerListe, entreeCartes, rythme } from "./animations.js?v=15";
+import { grouper } from "./collection.js?v=15";
+import { badgesDesMembres, resumeBadges } from "./badges-ui.js?v=15";
 
 export async function chargerEquipage() {
   const [{ data, error }, badgesMembres] = await Promise.all([sb.from("vitrine").select("*"), badgesDesMembres()]);

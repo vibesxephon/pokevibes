@@ -317,8 +317,6 @@ img { max-width: 100%; }
 @media (min-width: 700px) { .fiche { margin: auto; border-radius: 24px; } }
 .fiche::backdrop { background: var(--voile); }
 .fermer { float: right; border: 0; background: var(--surface); width: 40px; height: 40px; border-radius: 50%; font-size: 1.3rem; cursor: pointer; }
-.fiche-haut { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; clear: both; padding-top: 4px; }
-.fiche-haut .visuel { width: 180px; border-width: 4px; border-radius: 12px; }
 .fiche h2 { font: 700 1.35rem/1.15 var(--titre); margin: 0 0 4px; }
 .fiche .infos { color: var(--encre-douce); font-size: .85rem; margin: 0; }
 .fiche dl {
@@ -327,11 +325,6 @@ img { max-width: 100%; }
 }
 .fiche dt { color: var(--encre-douce); font-size: .9rem; align-self: center; }
 .fiche dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
-.fiche dl dd:first-of-type { font: 700 1.5rem var(--titre); }
-.historique { margin-top: 12px; padding: 12px 16px; border-radius: 16px; background: var(--pochette); }
-.historique svg { width: 100%; height: 70px; display: block; }
-.historique polyline, .historique path { stroke: var(--encre); }
-.historique p { margin: 4px 0 0; font-size: .8rem; color: var(--encre-douce); }
 .fiche a { color: inherit; font-weight: 600; }
 .alerte { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--score-pale); font-size: .9rem; }
 
@@ -403,7 +396,7 @@ img { max-width: 100%; }
    Prix, totaux, pourcentages et numéros restent alignés d'une ligne à l'autre. */
 .score, .pastille, .gain-ligne, .chiffres dd, .page-titre .somme, .pochette .prix strong, .pochette .prix .evo,
 .quantite, .tendance, .set-compte, .cc-bas, .membres .valeur, .fiche dd:not(:last-of-type), .prix-tuile, .prix-choix strong,
-#fiche-qte, .progression p, .historique p {
+#fiche-qte, .progression p {
   font-family: var(--titre);
   font-variant-numeric: tabular-nums;
 }
@@ -685,3 +678,151 @@ img { max-width: 100%; }
 /* Barre latérale en mode sombre : la copie du « text roll » en jaune vif */
 :root[data-theme="sombre"] .nav-item.roll { --roll-copie: #F2C200; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="clair"]) .nav-item.roll { --roll-copie: #F2C200; } }
+
+/* =====================================================================
+   v15 : fiche carte, Wishlist, alertes de prix
+   ===================================================================== */
+
+/* Barre du bas à 5 : Collection, Classeur, [Scanner], Wishlist, L'Équipage */
+.nav-bas { grid-template-columns: repeat(5, minmax(0, 1fr)); padding-inline: 6px; }
+
+/* ---------- Fiche d'une carte ---------- */
+.fiche-tete { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; clear: both; padding-top: 4px; }
+.fiche-visuel { width: min(240px, 64vw); border-width: 4px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 18px 40px rgba(0, 0, 0, .16); }
+.fiche-tete h2 { margin: 4px 0 0; font: 700 1.6rem/1.15 var(--titre); letter-spacing: -.01em; text-wrap: balance; }
+.fiche-ref { margin: 0; color: var(--encre-douce); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.fiche-prix { margin-top: 18px; text-align: center; }
+.fiche-prix-libelle { margin: 0; font-size: .8rem; color: var(--encre-douce); }
+.fiche-prix-valeur { margin: 2px 0 0; font: 700 2.6rem/1.05 var(--titre); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fiche-prix-valeur .infos { display: block; margin-top: 4px; font: 400 .85rem var(--texte); letter-spacing: 0; }
+.fiche-tendance { margin: 6px 0 0; }
+.fiche-tendance .tendance { font-size: .9rem; }
+.fiche-achats { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 2px; font-size: .9rem; color: var(--encre-douce); }
+.fiche-achats strong { color: var(--encre); font-family: var(--titre); font-variant-numeric: tabular-nums; }
+
+.fiche-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; margin-top: 18px; }
+.action {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 68px; padding: 10px 6px;
+  border: 0; border-radius: 16px; background: var(--pochette); color: var(--encre); font: 600 .82rem/1.2 var(--texte); cursor: pointer;
+}
+.action svg { fill: none; transition: transform .45s cubic-bezier(.16, 1, .3, 1); }
+.action[aria-pressed="true"] { background: var(--score); color: #1C1C1C; }
+.action[aria-pressed="true"] svg { fill: currentColor; }
+.action-retirer { color: var(--perte); }
+.fiche-retrait {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 10px;
+  padding: 12px 14px; border-radius: 14px; background: var(--pochette); box-shadow: inset 0 0 0 2px var(--perte);
+}
+.fiche-retrait[hidden] { display: none; }
+.fiche-retrait p { margin: 0; font-weight: 600; }
+.fiche-retrait div { display: flex; gap: 8px; }
+.mini {
+  min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--contour);
+  background: transparent; color: var(--encre); font: 600 .8rem var(--texte); cursor: pointer;
+}
+.mini-danger { border-color: var(--perte); color: var(--perte); }
+.mini:disabled { opacity: .5; cursor: default; }
+
+.sous-titre-fiche { margin: 18px 0 8px; font: 700 .95rem var(--titre); }
+.liste-alertes { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.alerte-ligne { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 10px; padding: 10px 12px; border-radius: 14px; background: var(--pochette); }
+.alerte-ligne > svg { box-sizing: content-box; padding: 6px; border-radius: 50%; background: var(--surface); color: var(--encre-douce); }
+.alerte-ligne.active > svg { background: var(--score); color: #1C1C1C; }
+.alerte-texte { display: flex; flex-direction: column; min-width: 0; }
+.alerte-texte strong { font: 700 .95rem var(--titre); font-variant-numeric: tabular-nums; }
+.alerte-texte span { font-size: .8rem; color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.alerte-ligne.declenchee .alerte-texte span { color: var(--gain); font-weight: 600; }
+.alerte-boutons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; }
+.alerte-confirme { margin-right: auto; font-size: .85rem; font-weight: 600; }
+
+.fiche-cases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+.case { min-width: 0; padding: 12px 10px; border-radius: 14px; background: var(--pochette); }
+.case p { margin: 0; font-size: .75rem; color: var(--encre-douce); }
+.case strong { display: block; margin-top: 4px; font: 700 1.05rem var(--titre); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.case small { display: block; margin-top: 1px; font-size: .72rem; color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.case.gain strong, .case.gain small { color: var(--gain); }
+.case.perte strong, .case.perte small { color: var(--perte); }
+
+.fiche-graphe { margin-top: 16px; padding: 14px 14px 10px; border-radius: 16px; background: var(--pochette); }
+.graphe-entete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.graphe-entete h3 { margin: 0; font: 700 .95rem var(--titre); }
+.periodes { gap: 4px; }
+.periodes button { height: 32px; padding: 0 11px; font-size: .8rem; }
+.periodes button:disabled { opacity: .35; cursor: default; }
+.graphe { margin-top: 10px; }
+.graphe-zone { position: relative; height: 150px; color: var(--encre); }
+.graphe-zone.hausse { color: var(--gain); }
+.graphe-zone.baisse { color: var(--perte); }
+.graphe-zone svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.graphe-aire { fill: currentColor; opacity: .12; }
+.graphe-ligne { stroke: currentColor; }
+.graphe-point { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px var(--pochette); }
+.graphe-axe { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: .72rem; color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.graphe-vide { margin: 4px 0 6px; color: var(--encre-douce); font-size: .9rem; }
+.fiche-details { margin-top: 16px; }
+
+/* ---------- Fenêtre d'alerte ---------- */
+.fenetre-alerte { width: min(440px, 100vw); }
+.fenetre-alerte h2 { margin: 6px 0 4px; font: 700 1.3rem var(--titre); }
+.alerte-carte { margin: 0 0 16px; color: var(--encre-douce); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.alerte-phrase { margin: 0 0 10px; font: 600 1.05rem var(--titre); }
+.alerte-sens { margin-bottom: 12px; }
+.champ-euro { display: flex; align-items: center; gap: 8px; height: 58px; padding: 0 16px; border-radius: 14px; background: var(--surface); }
+.champ-euro:focus-within { outline: 3px solid var(--score); outline-offset: 2px; }
+.champ-euro input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; font: 700 1.6rem var(--titre); font-variant-numeric: tabular-nums; }
+.champ-euro input:focus-visible { outline: none; box-shadow: none; }
+.champ-euro input { appearance: textfield; -moz-appearance: textfield; }
+.champ-euro input::-webkit-inner-spin-button, .champ-euro input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.champ-euro span { font: 700 1.4rem var(--titre); color: var(--encre-douce); }
+.alerte-avis:empty { display: none; }
+.alerte-avis { margin-top: 10px; color: var(--encre); }
+.alerte-discord { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.alerte-discord svg { flex: none; }
+.fenetre-alerte .bouton-principal { margin-top: 18px; }
+
+/* ---------- Classeur : « Voir la fiche » ---------- */
+.cs-mode { margin-bottom: 8px; }
+#cs-cartes.mode-fiche .cc { cursor: zoom-in; }
+
+/* ---------- Wishlist ---------- */
+.wishlist-barre { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+.wishlist-barre[hidden] { display: none; }
+.wishlist-compte { margin: 0; color: var(--encre-douce); font-size: .9rem; font-variant-numeric: tabular-nums; }
+#wishlist-tri { height: 40px; padding: 0 12px; border-radius: 12px; border: 0; background: var(--surface); }
+.wishlist { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.voeu {
+  width: 100%; display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 14px;
+  padding: 10px; border: 0; border-radius: var(--rayon); background: var(--pochette); color: var(--encre); text-align: left; cursor: pointer;
+}
+.voeu-img { border-width: 2px; }
+.voeu-texte { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.voeu .nom { font: 700 1rem/1.25 var(--titre); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voeu .infos { font-size: .78rem; color: var(--gris); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.voeu-prix { display: flex; align-items: baseline; gap: 8px; }
+.voeu-prix strong { font: 700 1.25rem var(--titre); font-variant-numeric: tabular-nums; }
+.voeu-prix .inconnu { color: var(--gris); }
+.voeu-alerte { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; padding: 2px 9px 2px 7px; border-radius: 99px; background: var(--surface); color: var(--encre-douce); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.voeu-alerte.active { background: var(--score); color: #1C1C1C; font-weight: 600; }
+.voeu-alerte.declenchee { background: var(--score-pale); color: var(--encre); font-weight: 600; }
+.voeu-possedee { font-size: .75rem; font-weight: 600; color: var(--gain); }
+.wishlist-vide { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 12px auto; padding: 32px 18px; max-width: 52ch; border: 2px dashed var(--contour); border-radius: 20px; text-align: center; }
+.wishlist-vide svg { color: var(--score); }
+.wishlist-vide strong { color: var(--encre); font: 700 1.1rem var(--titre); }
+
+@media (min-width: 700px) and (hover: hover) and (pointer: fine) {
+  .action, .voeu, .mini { transition: background-color .3s cubic-bezier(.16, 1, .3, 1), box-shadow .3s cubic-bezier(.16, 1, .3, 1), border-color .3s cubic-bezier(.16, 1, .3, 1); }
+  .action:hover svg { transform: translateY(-2px) rotate(-6deg); }
+  .action:hover:not([aria-pressed="true"]), .voeu:hover { box-shadow: inset 0 0 0 2px var(--contour); }
+  .mini:hover { border-color: var(--encre); }
+  .mini-danger:hover { border-color: var(--perte); background: color-mix(in srgb, var(--perte) 10%, transparent); }
+}
+
+@media (min-width: 900px) {
+  .nav-bas { padding-inline: 14px; }
+  .nav-item[data-vue="wishlist"] { order: 3; }
+  .nav-item[data-vue="equipage"] { order: 4; }
+  .nav-badges { order: 5; }
+  .bouton-scan { order: 6; }
+  .wishlist { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .wishlist-barre { max-width: none; }
+}

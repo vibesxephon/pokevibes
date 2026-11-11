@@ -1,12 +1,13 @@
 /* PokeVibes — Badges : journal d'activité, vérification, déblocage plein écran, page « Mes badges ». */
-import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "../badges.js?v=14";
-import { $, calme, dateCourte, dateLongue, ecrireLocal, esc, lireLocal } from "./commun.js?v=14";
-import { etat, sb } from "./etat.js?v=14";
-import { badgesAGagner, compterSniperPur, donneesBadges, mesurer, ouvertureANoter, progresTexte, statsClasseurPur } from "./badges-regles.js?v=14";
-import { chargerIndex } from "./catalogue.js?v=14";
-import { aAnimer, animer, EZ, preparerRoll, rythme } from "./animations.js?v=14";
-import { montrerVue } from "./navigation.js?v=14";
-import { chargerClasseur } from "./classeur.js?v=14";
+import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "../badges.js?v=15";
+import { $, calme, dateCourte, dateLongue, ecrireLocal, esc, lireLocal } from "./commun.js?v=15";
+import { etat, sb } from "./etat.js?v=15";
+import { produitsDesAlertes } from "./wishlist.js?v=15";
+import { badgesAGagner, compterSniperPur, donneesBadges, mesurer, ouvertureANoter, progresTexte, statsClasseurPur } from "./badges-regles.js?v=15";
+import { chargerIndex } from "./catalogue.js?v=15";
+import { aAnimer, animer, EZ, preparerRoll, rythme } from "./animations.js?v=15";
+import { montrerVue } from "./navigation.js?v=15";
+import { chargerClasseur } from "./classeur.js?v=15";
 
 export async function chargerJournal() {
   etat.journalPret = false;
@@ -70,8 +71,9 @@ export async function lancerVerification() {
   verifEnCours = true;
   try {
     await chargerClasseur().catch(() => {});
-    const [cl, sniper] = await Promise.all([statsClasseur(), compterSniper().catch(() => 0)]);
-    const d = etat.donnees = donneesBadges({ activite: etat.activite, lignes: etat.lignes ?? [], classeur: cl, sniper, ventes: etat.ventes, creeLe: etat.moi?.cree_le });
+    const [cl, sniper, produitDe] = await Promise.all([statsClasseur(), compterSniper().catch(() => 0), produitsDesAlertes().catch(() => new Map())]);
+    const d = etat.donnees = donneesBadges({ activite: etat.activite, lignes: etat.lignes ?? [], classeur: cl, sniper, ventes: etat.ventes, creeLe: etat.moi?.cree_le,
+      favoris: etat.favoris ?? [], alertes: etat.alertes ?? [], produitDe });
     const nouveaux = badgesAGagner(d, etat.badges);
     const cleInit = `badges-init-${etat.moi.id}`;
     const premierLancement = etat.badges.size === 0 && !lireLocal(cleInit);

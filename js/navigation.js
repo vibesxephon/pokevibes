@@ -1,11 +1,12 @@
 /* PokeVibes — Navigation entre les vues et raccourcis clavier. */
-import { $ } from "./commun.js?v=14";
-import { etat } from "./etat.js?v=14";
-import { entreeVue } from "./animations.js?v=14";
-import { dessinerCollection } from "./collection.js?v=14";
-import { chargerEquipage } from "./equipage.js?v=14";
-import { chargerClasseur, dessinerClasseurListe, ouvrirSet } from "./classeur.js?v=14";
-import { dessinerMesBadges } from "./badges-ui.js?v=14";
+import { $ } from "./commun.js?v=15";
+import { etat } from "./etat.js?v=15";
+import { entreeVue } from "./animations.js?v=15";
+import { dessinerCollection } from "./collection.js?v=15";
+import { chargerEquipage } from "./equipage.js?v=15";
+import { chargerClasseur, dessinerClasseurListe, ouvrirSet } from "./classeur.js?v=15";
+import { dessinerMesBadges } from "./badges-ui.js?v=15";
+import { dessinerWishlist } from "./wishlist.js?v=15";
 
 /* ================= Navigation : barre du bas et choix du jeu ================= */
 export function montrerVue(v) {
@@ -15,12 +16,14 @@ export function montrerVue(v) {
   $("#vue-equipage").hidden = v !== "equipage";
   $("#vue-classeur").hidden = v !== "classeur";
   $("#vue-badges").hidden = v !== "badges";
+  $("#vue-wishlist").hidden = v !== "wishlist";
   if (v !== "badges") etat.vueAvant = v;
   scrollTo({ top: 0 });
   entreeVue(v);
   if (v === "equipage") chargerEquipage();
   else if (v === "classeur") chargerClasseur().then(() => (etat.setOuvert ? ouvrirSet(etat.setOuvert, true) : dessinerClasseurListe()));
   else if (v === "badges") dessinerMesBadges();
+  else if (v === "wishlist") dessinerWishlist();
   else dessinerCollection();
 }
 
@@ -31,7 +34,9 @@ export function initNavigation() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       const f = $("#fiche");
-      if (f.open && f.classList.contains("panneau") && !$("#ajout").open && !$("#deblocage").open) { e.preventDefault(); f.close(); }
+      // le panneau ne se ferme que si aucune fenêtre (alerte, ajout, badge) n'est ouverte par-dessus : Échap ferme d'abord celle-ci
+      const dessus = [...document.querySelectorAll("dialog[open]")].some((d) => d !== f && d.matches(":modal"));
+      if (f.open && f.classList.contains("panneau") && !dessus) { e.preventDefault(); f.close(); }
       return;
     }
     if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;

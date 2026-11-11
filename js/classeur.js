@@ -1,10 +1,12 @@
 /* PokeVibes — Classeur : remplir ses extensions carte par carte. */
-import { $, esc, euro, sansAccent } from "./commun.js?v=14";
-import { ajout, etat, sb } from "./etat.js?v=14";
-import { compteSet, destinationConseillee } from "./progression.js?v=14";
-import { chargerIndex, prixConnus } from "./catalogue.js?v=14";
-import { aAnimer, animerListe, ecrireTitre, entreeBlocs, entreeVue, rythme } from "./animations.js?v=14";
-import { verifierBadges } from "./badges-ui.js?v=14";
+import { $, esc, euro, sansAccent } from "./commun.js?v=15";
+import { ajout, etat, sb } from "./etat.js?v=15";
+import { ouvrirFiche } from "./fiche.js?v=15";
+import { depuisCatalogue } from "./cartes.js?v=15";
+import { compteSet, destinationConseillee } from "./progression.js?v=15";
+import { chargerIndex, prixConnus } from "./catalogue.js?v=15";
+import { aAnimer, animerListe, ecrireTitre, entreeBlocs, entreeVue, rythme } from "./animations.js?v=15";
+import { verifierBadges } from "./badges-ui.js?v=15";
 
 export function marquerDestination(d, aide) {
   ajout.destination = d;
@@ -80,7 +82,7 @@ export function dessinerSet(idx) {
   if (etat.csFiltre === "ai") l = l.filter((c) => etat.classeur.has(c.id));
   $("#cs-cartes").innerHTML = l.length ? l.map((c) => {
     const x = etat.classeur.get(c.id), p = etat.prixSet.get(c.id);
-    return `<button type="button" class="cc ${x ? "ai" : "manque"}" data-id="${esc(c.id)}" aria-pressed="${!!x}" aria-label="${esc(c.name)} ${esc(c.localId)}">
+    return `<button type="button" class="cc ${x ? "ai" : "manque"}" data-id="${esc(c.id)}" aria-pressed="${!!x}" aria-label="${esc(c.name)} ${esc(c.localId)}${etat.csMode === "fiche" ? ", voir la fiche" : ""}">
       <span class="cc-img">${c.image ? `<img loading="lazy" src="${esc(c.image)}/low.webp" alt="">` : `<span class="cc-sans">${esc(c.name)}</span>`}</span>
       ${x && x.quantite > 1 ? `<span class="quantite">×${x.quantite}</span>` : ""}
       <span class="cc-bas"><span>${esc(c.localId)}</span><span>${p ? euro(p.prix) : ""}</span></span></button>`;
@@ -121,8 +123,19 @@ export function initClasseur() {
     $("#cs-filtre").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
     dessinerSet(await chargerIndex());
   });
+  $("#cs-mode").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    etat.csMode = b.dataset.val;
+    $("#cs-mode").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    $("#cs-cartes").classList.toggle("mode-fiche", etat.csMode === "fiche");
+  });
   $("#cs-cartes").addEventListener("click", async (e) => {
     const b = e.target.closest(".cc"); if (!b) return;
+    if (etat.csMode === "fiche") { // voir la fiche (prix, historique, favori, alerte) sans cocher la carte
+      const c = (await chargerIndex()).cartes.find((x) => x.id === b.dataset.id);
+      if (c) ouvrirFiche(depuisCatalogue(c));
+      return;
+    }
     const id = b.dataset.id, x = etat.classeur.get(id), delta = x ? -x.quantite : 1;
     // affichage immédiat, puis enregistrement
     if (x) etat.classeur.delete(id); else etat.classeur.set(id, { tcgdex_id: id, set_id: etat.setOuvert, quantite: 1 });

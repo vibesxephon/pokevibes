@@ -1,12 +1,14 @@
 /* PokeVibes — Ajout d'une carte ou de scellé : scanner (IA, lecture du numéro), recherche, PC (glisser-déposer, fichier, webcam). */
-import { $, avecDelai, calme, esc, euro, NOM_JEU, sansAccent } from "./commun.js?v=14";
-import { ajout, etat, sb } from "./etat.js?v=14";
-import { rechercheLocale } from "./recherche.js?v=14";
-import { issueScan } from "./badges-regles.js?v=14";
-import { catalogue, chargerIndex, prixConnus, RARETES, setsPokemon, TCG } from "./catalogue.js?v=14";
-import { basculerJeu, chargerCollection } from "./collection.js?v=14";
-import { chargerClasseur, dessinerClasseurListe, marquerDestination, ouvrirSet, proposerDestination } from "./classeur.js?v=14";
-import { noterActivite, verifierBadges } from "./badges-ui.js?v=14";
+import { $, avecDelai, calme, esc, euro, NOM_JEU, sansAccent } from "./commun.js?v=15";
+import { ajout, etat, sb } from "./etat.js?v=15";
+import { ouvrirFiche } from "./fiche.js?v=15";
+import { depuisCatalogue } from "./cartes.js?v=15";
+import { rechercheLocale } from "./recherche.js?v=15";
+import { issueScan } from "./badges-regles.js?v=15";
+import { catalogue, chargerIndex, prixConnus, RARETES, setsPokemon, TCG } from "./catalogue.js?v=15";
+import { basculerJeu, chargerCollection } from "./collection.js?v=15";
+import { chargerClasseur, dessinerClasseurListe, marquerDestination, ouvrirSet, proposerDestination } from "./classeur.js?v=15";
+import { noterActivite, verifierBadges } from "./badges-ui.js?v=15";
 
 export function choisirType(t) {
   ajout.type = t; ajout.choix = null;
@@ -340,7 +342,10 @@ export function initScanner() {
       };
       $("#ajout-choix").innerHTML = `${fr.image ? `<img src="${esc(fr.image)}/low.webp" alt="">` : vignetteProvisoire(fr.name, ajout.choix.numero, "")}<div><strong>${esc(fr.name)}</strong><br>
       <span class="infos">${esc(fr.set?.name)} · ${esc(ajout.choix.numero)} · ${esc(ajout.choix.rarete ?? "")}</span>${fr.image ? "" : `<br><span class="infos">Image pas encore disponible, elle s'ajoutera toute seule.</span>`}
-      <p class="prix-choix" id="prix-choix">Prix Cardmarket FR : …</p></div>`;
+      <p class="prix-choix" id="prix-choix">Prix Cardmarket FR : …</p>
+      <button type="button" class="lien-bouton" id="choix-fiche">Voir la fiche : historique, favori, alerte</button></div>`;
+      $("#choix-fiche").addEventListener("click", () => ouvrirFiche(depuisCatalogue({ id: fr.id, name: fr.name, localId: fr.localId, rarete: ajout.choix.rarete,
+        set: { nom: fr.set?.name, total: fr.set?.cardCount?.official }, image: fr.image })));
       prixConnus([fr.id]).then((m) => {
         const p = m.get(fr.id), el = $("#prix-choix"); if (!el) return;
         el.innerHTML = p

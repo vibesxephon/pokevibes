@@ -28,7 +28,7 @@ export const RARETES = {
   holo: { nom: "Holo", rang: 4 },
 };
 
-export const FAMILLES = ["Scanner", "Collection", "Scellé", "Classeur", "Explorateur", "Investisseur", "Secrets"];
+export const FAMILLES = ["Scanner", "Collection", "Scellé", "Classeur", "Explorateur", "Investisseur", "Wishlist", "Secrets"];
 
 // Badge verrouillé (secrets non trouvés)
 export const SVG_VERROUILLE = `<rect x="6" y="6" width="48" height="48" rx="14" fill="#5F5F59" ${O}/><rect x="6" y="6" width="48" height="48" rx="14" fill="#5F5F59" ${K}/>${texte(30, 40, "?", 26, "#A8A8A0")}`;
@@ -133,6 +133,18 @@ const DESSINS = {
   "plus-value": pieces(`<circle cx="30" cy="9" r="7" fill="${HO}"/>`, `<path d="M18 23L22 12L30 21Z" fill="${AG}"/>`, `<rect x="15" y="40" width="8" height="14" rx="3" fill="${AG}"/>`, `<rect x="36" y="40" width="8" height="14" rx="3" fill="${AG}"/>`, `<ellipse cx="29" cy="34" rx="22" ry="16" fill="${AG}"/>`, `<ellipse cx="51" cy="34" rx="5" ry="6" fill="${AG}"/>`) +
     `<rect x="23" y="20" width="12" height="3" rx="1.5" fill="#1C1C1C"/>${texte(30, 12, "+", 9)}<circle cx="42" cy="29" r="2" fill="#1C1C1C"/><circle cx="52" cy="33" r="1.1" fill="#1C1C1C"/><circle cx="52" cy="36" r="1.1" fill="#1C1C1C"/>${G("M13 31q4-8 13-10q-8 5-10 12z")}`,
 
+  /* ---------- Wishlist ---------- */
+  // Étoile filante : le premier vœu
+  "premier-voeu": pieces(`<path d="M22 33L5 50L8.5 53.5L25.5 36.5Z" fill="#E0B486"/>`, `<path d="M29 40L16 55L19.5 57.5L32.5 42.5Z" fill="#E0B486"/>`, `<path d="M18 27L5 37.5L8 41L21 30.5Z" fill="#E0B486"/>`,
+    `<path d="M36 5L40.9 17.2L53.6 18.1L43.8 26.6L46.9 39L36 32.3L25.1 39L28.2 26.6L18.4 18.1L31.1 17.2Z" fill="${BZ}"/>`) +
+    `<path d="M36 13L38.4 19.4L45 19.8L39.9 24.2L41.5 30.6L36 27.1L30.5 30.6L32.1 24.2L27 19.8L33.6 19.4Z" fill="${HO}" ${K} stroke-width="1.5"/>${G("M30 14l4-6l1 6z")}`,
+  // Cloche des alertes, avec sa pastille « 5 »
+  sentinelle: pieces(`<circle cx="30" cy="7" r="3.5" fill="${AG}"/>`, `<path d="M30 8c-9.5 0-15.5 7-15.5 16.5V34l-5.5 8h42l-5.5-8V24.5C45.5 15 39.5 8 30 8z" fill="${AG}"/>`, `<circle cx="30" cy="47" r="6" fill="${AG}"/>`) +
+    `<path d="M9 42h42" ${K}/><path d="M21 22q2-6 7-8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/>` + contour(`<circle cx="46" cy="14" r="9" fill="${ROUGE}"/>`) + `<circle cx="46" cy="14" r="9" fill="${ROUGE}" ${K}/>${texte(46, 18.5, "5", 12, CREME)}`,
+  // Sac d'achat, flèche du prix qui baisse
+  "bonne-affaire": pieces(`<path d="M19 21v-4a11 11 0 0 1 22 0v4h-5.5v-4a5.5 5.5 0 0 0-11 0v4z" fill="${HO}"/>`, `<path d="M9 20H51L47 56H13Z" fill="${HO}"/>`) +
+    `<path d="M26.5 26h7v12h6.5l-10 11l-10-11h6.5z" fill="${VERT}" ${K}/><path d="M9 20H51" ${K}/>` + pieces(etoile(50, 30, 6, CYAN)) + G("M14 25h4l-2 24h-4z"),
+
   /* ---------- Secrets (nuit + jaune) ---------- */
   "oiseau-de-nuit": `<path d="M38 4a26 26 0 1 0 18 34a20 20 0 1 1-18-34z" fill="${NUIT}" ${O}/><path d="M38 4a26 26 0 1 0 18 34a20 20 0 1 1-18-34z" fill="${NUIT}" ${K}/><path d="M46 12l2 5l5 2l-5 2l-2 5l-2-5l-5-2l5-2z" fill="${HO}" ${K} stroke-width="1.5"/>${G("M14 22q4-10 14-13q-8 6-10 15z")}`,
   // Soleil qui se lève sur l'horizon
@@ -184,6 +196,10 @@ export const BADGES = [
   { id: "mains-de-diamant", nom: "Mains de diamant", famille: "Investisseur", rarete: "holo", condition: "Garder une carte achetée depuis 6 mois.", mesure: (d) => d.detentionJours, cible: 182, unite: "jours" },
   { id: "premiere-vente", nom: "Première vente", famille: "Investisseur", rarete: "bronze", condition: "Enregistrer sa première vente.", mesure: (d) => d.ventes, cible: 1, unite: "vente" },
   { id: "plus-value", nom: "Plus-value", famille: "Investisseur", rarete: "argent", condition: "Vendre plus cher que le prix d'achat, frais compris.", mesure: (d) => d.ventesGagnantes, cible: 1 },
+
+  { id: "premier-voeu", nom: "Premier vœu", famille: "Wishlist", rarete: "bronze", condition: "Ajouter une première carte à sa Wishlist (l'étoile de la fiche).", mesure: (d) => d.favoris ?? 0, cible: 1, unite: "favori" },
+  { id: "sentinelle", nom: "Sentinelle", famille: "Wishlist", rarete: "argent", condition: "Créer 5 alertes de prix.", mesure: (d) => d.alertes ?? 0, cible: 5, unite: "alertes" },
+  { id: "bonne-affaire", nom: "Bonne affaire", famille: "Wishlist", rarete: "holo", condition: "Acheter une carte après qu'une alerte « en dessous » s'est déclenchée.", mesure: (d) => (d.bonneAffaire ? 1 : 0), cible: 1 },
 
   { id: "oiseau-de-nuit", nom: "Oiseau de nuit", famille: "Secrets", rarete: "secret", secret: true, condition: "Ouvrir PokeVibes entre 2 h et 5 h du matin.", mesure: (d) => (d.heures.some((h) => h >= 2 && h < 5) ? 1 : 0), cible: 1 },
   { id: "leve-tot", nom: "Lève-tôt", famille: "Secrets", rarete: "secret", secret: true, condition: "Ouvrir PokeVibes entre 5 h et 7 h du matin.", mesure: (d) => (d.heures.some((h) => h >= 5 && h < 7) ? 1 : 0), cible: 1 },

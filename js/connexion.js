@@ -1,9 +1,10 @@
 /* PokeVibes — Connexion (lien magique) et chargement de l'appli. */
-import { $ } from "./commun.js?v=14";
-import { etat, sb } from "./etat.js?v=14";
-import { entreeApp, entreeConnexion } from "./animations.js?v=14";
-import { chargerCollection } from "./collection.js?v=14";
-import { chargerJournal, verifierBadges } from "./badges-ui.js?v=14";
+import { $ } from "./commun.js?v=15";
+import { etat, sb } from "./etat.js?v=15";
+import { entreeApp, entreeConnexion } from "./animations.js?v=15";
+import { chargerCollection } from "./collection.js?v=15";
+import { chargerJournal, verifierBadges } from "./badges-ui.js?v=15";
+import { chargerSuivi } from "./wishlist.js?v=15";
 
 export let charge = false;
 
@@ -20,7 +21,7 @@ export async function afficher(session) {
   $("#mon-pseudo").textContent = moi?.pseudo ?? "toi";
   $("#profil-nom").textContent = moi?.pseudo ?? "";
   $("#initiale").textContent = (moi?.pseudo ?? "?").trim().charAt(0).toUpperCase() || "?";
-  await Promise.all([chargerCollection(), chargerJournal()]);
+  await Promise.all([chargerCollection(), chargerJournal(), chargerSuivi()]);
   verifierBadges();
 }
 
