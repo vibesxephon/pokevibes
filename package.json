@@ -1,0 +1,9 @@
+{
+  "name": "pokevibes",
+  "private": true,
+  "description": "PWA de suivi de collection TCG de L'Équipage. Aucune dépendance : le site est servi tel quel, les tests utilisent node --test.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}

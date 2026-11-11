@@ -1,7 +1,18 @@
 // Service worker : garde l'interface en cache pour un démarrage rapide.
 // Les données (Supabase) passent toujours par le réseau pour rester à jour.
-const VERSION = "pokevibes-v13";
-const COQUILLE = ["./", "index.html", "style.css", "app.js", "badges.js", "config.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/embleme-112.png", "icons/favicon-32.png"];
+const VERSION = "pokevibes-v14";
+// Tous les fichiers de l'interface, à l'adresse exacte où la page les demande (avec ?v=…).
+// tests/modules.test.js vérifie que cette liste est complète et à la bonne version.
+const COQUILLE = [
+  "./", "index.html", "style.css?v=14", "app.js?v=14",
+  "badges.js?v=14", "config.js?v=14", "js/animations.js?v=14", "js/badges-regles.js?v=14",
+  "js/badges-ui.js?v=14", "js/catalogue.js?v=14", "js/classeur.js?v=14", "js/collection.js?v=14",
+  "js/commun.js?v=14", "js/connexion.js?v=14", "js/equipage.js?v=14", "js/etat.js?v=14",
+  "js/fiche.js?v=14", "js/format.js?v=14", "js/navigation.js?v=14", "js/prix.js?v=14",
+  "js/progression.js?v=14", "js/recherche.js?v=14", "js/scanner.js?v=14", "js/theme.js?v=14",
+  "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/embleme-112.png",
+  "icons/favicon-32.png", "icons/apple-touch-icon.png",
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(COQUILLE)).then(() => self.skipWaiting()));
