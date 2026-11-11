@@ -1,9 +1,9 @@
 /* PokeVibes — calcul des conditions des badges (pur : sans page ni réseau, testé dans tests/badges.test.js).
    Les badges eux-mêmes (nom, rareté, condition, mesure, cible, dessin) sont décrits dans badges.js. */
-import { BADGES } from "../badges.js?v=15";
-import { sansAccent, jourLocal } from "./format.js?v=15";
-import { compteSet } from "./progression.js?v=15";
-import { bonneAffaire } from "./suivi.js?v=15";
+import { BADGES } from "../badges.js?v=16";
+import { sansAccent, jourLocal } from "./format.js?v=16";
+import { compteSet } from "./progression.js?v=16";
+import { bonneAffaire } from "./suivi.js?v=16";
 
 export const mesurer = (b, d) => { try { return Number(b.mesure(d)) || 0; } catch { return 0; } };
 
@@ -58,8 +58,9 @@ export function compterSniperPur(lignes, historique) {
 /* Données du membre utilisées par les mesures des badges.
    activite : journal (scan, scan_reconnu, scan_corrige, ouverture) ; lignes : ma_collection (une ligne par exemplaire acheté) ;
    classeur : résultat de statsClasseurPur ; ventes : table ventes ; creeLe : date d'inscription ;
-   favoris, alertes : Wishlist et alertes de prix du membre ; produitDe : Map tcgdex_id → produit_id (pour « Bonne affaire »). */
-export function donneesBadges({ activite = [], lignes = [], classeur, sniper = 0, ventes = [], creeLe = null, favoris = [], alertes = [], produitDe = new Map(), maintenant = Date.now() }) {
+   favoris, alertes : Wishlist et alertes de prix du membre ; produitDe : Map tcgdex_id → produit_id (pour « Bonne affaire ») ;
+   photos : nombre de photos de produits ajoutées par le membre (« Photographe »). */
+export function donneesBadges({ activite = [], lignes = [], classeur, sniper = 0, ventes = [], creeLe = null, favoris = [], alertes = [], produitDe = new Map(), photos = 0, maintenant = Date.now() }) {
   const a = activite, cl = classeur ?? { cartes: 0, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [] };
   const somme = (l) => l.reduce((t, x) => t + (Number(x.quantite) || 0), 0);
   const scans = a.filter((x) => x.type === "scan");
@@ -98,5 +99,6 @@ export function donneesBadges({ activite = [], lignes = [], classeur, sniper = 0
     favoris: favoris.length,
     alertes: alertes.length,
     bonneAffaire: bonneAffaire(alertes, lignes, produitDe),
+    photos,
   };
 }

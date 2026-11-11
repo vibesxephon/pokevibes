@@ -1,13 +1,14 @@
 /* PokeVibes — Badges : journal d'activité, vérification, déblocage plein écran, page « Mes badges ». */
-import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "../badges.js?v=15";
-import { $, calme, dateCourte, dateLongue, ecrireLocal, esc, lireLocal } from "./commun.js?v=15";
-import { etat, sb } from "./etat.js?v=15";
-import { produitsDesAlertes } from "./wishlist.js?v=15";
-import { badgesAGagner, compterSniperPur, donneesBadges, mesurer, ouvertureANoter, progresTexte, statsClasseurPur } from "./badges-regles.js?v=15";
-import { chargerIndex } from "./catalogue.js?v=15";
-import { aAnimer, animer, EZ, preparerRoll, rythme } from "./animations.js?v=15";
-import { montrerVue } from "./navigation.js?v=15";
-import { chargerClasseur } from "./classeur.js?v=15";
+import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "../badges.js?v=16";
+import { $, calme, dateCourte, dateLongue, ecrireLocal, esc, lireLocal } from "./commun.js?v=16";
+import { etat, sb } from "./etat.js?v=16";
+import { produitsDesAlertes } from "./wishlist.js?v=16";
+import { compterMesPhotos } from "./photo.js?v=16";
+import { badgesAGagner, compterSniperPur, donneesBadges, mesurer, ouvertureANoter, progresTexte, statsClasseurPur } from "./badges-regles.js?v=16";
+import { chargerIndex } from "./catalogue.js?v=16";
+import { aAnimer, animer, EZ, preparerRoll, rythme } from "./animations.js?v=16";
+import { montrerVue } from "./navigation.js?v=16";
+import { chargerClasseur } from "./classeur.js?v=16";
 
 export async function chargerJournal() {
   etat.journalPret = false;
@@ -71,9 +72,9 @@ export async function lancerVerification() {
   verifEnCours = true;
   try {
     await chargerClasseur().catch(() => {});
-    const [cl, sniper, produitDe] = await Promise.all([statsClasseur(), compterSniper().catch(() => 0), produitsDesAlertes().catch(() => new Map())]);
+    const [cl, sniper, produitDe, photos] = await Promise.all([statsClasseur(), compterSniper().catch(() => 0), produitsDesAlertes().catch(() => new Map()), compterMesPhotos()]);
     const d = etat.donnees = donneesBadges({ activite: etat.activite, lignes: etat.lignes ?? [], classeur: cl, sniper, ventes: etat.ventes, creeLe: etat.moi?.cree_le,
-      favoris: etat.favoris ?? [], alertes: etat.alertes ?? [], produitDe });
+      favoris: etat.favoris ?? [], alertes: etat.alertes ?? [], produitDe, photos });
     const nouveaux = badgesAGagner(d, etat.badges);
     const cleInit = `badges-init-${etat.moi.id}`;
     const premierLancement = etat.badges.size === 0 && !lireLocal(cleInit);
@@ -97,7 +98,7 @@ export async function lancerVerification() {
 }
 
 export function majAvatar() {
-  $("#bouton-badges").setAttribute("aria-label", `Mes badges : ${etat.badges.size} sur ${BADGES.length}`);
+  $("#bouton-badges").setAttribute("aria-label", `Mon compte et mes badges : ${etat.badges.size} sur ${BADGES.length}`);
 }
 
 // Message bref (premier lancement)

@@ -1,9 +1,9 @@
 /* PokeVibes — Collection : chargement, couverture (valeur, plus-value), filtres et pochettes. */
-import { $, calme, esc, euro, NOM_JEU, pct } from "./commun.js?v=15";
-import { etat, sb } from "./etat.js?v=15";
-import { etiquetteTendance, fusionner, parPrix, tendanceDepuisDetail, tendanceMoyenne, totaux } from "./prix.js?v=15";
-import { aAnimer, courbeEZ, entreeCartes, restant, rythme } from "./animations.js?v=15";
-import { verifierBadges } from "./badges-ui.js?v=15";
+import { $, calme, esc, euro, NOM_JEU, pct } from "./commun.js?v=16";
+import { etat, sb } from "./etat.js?v=16";
+import { etiquetteTendance, fusionner, parPrix, tendanceDepuisDetail, tendanceMoyenne, totaux } from "./prix.js?v=16";
+import { aAnimer, courbeEZ, entreeCartes, restant, rythme } from "./animations.js?v=16";
+import { verifierBadges } from "./badges-ui.js?v=16";
 
 /* ================= Données ================= */
 export async function chargerCollection() {
@@ -140,8 +140,22 @@ export function dessinerClasseur() {
   const liste = filtrer(duJeu());
   $("#classeur").innerHTML = liste.length ? grouper(liste, true)
     : duJeu().length ? `<p class="vide">Rien ne correspond à ces filtres. Essaie « Scellé et cartes » ou une autre recherche.</p>`
+    : !etat.toutes.length ? htmlAccueil()
     : `<p class="vide">Ta collection ${NOM_JEU[etat.jeu]} est vide. Appuie sur « + Ajouter » pour commencer.</p>`;
   if (aAnimer.delete("collection")) entreeCartes($("#classeur"), rythme.tCartes);
+}
+
+// Collection encore vide (nouveau compte) : comment la remplir
+function htmlAccueil() {
+  return `<div class="accueil">
+    <h3>Bienvenue dans L'Équipage${etat.moi?.pseudo ? `, ${esc(etat.moi.pseudo)}` : ""} !</h3>
+    <p>Ta collection est vide pour l'instant. Deux façons de la remplir :</p>
+    <ul>
+      <li><strong>Le scanner</strong> (le bouton jaune) : photographie une carte ou un produit scellé, PokeVibes le reconnaît et l'ajoute avec son prix Cardmarket FR.</li>
+      <li><strong>Le Classeur</strong> : choisis une extension et coche les cartes que tu as, une par une.</li>
+    </ul>
+    <div class="accueil-actions"><button type="button" class="mini mini-plein" data-accueil="scan">Scanner une carte</button><button type="button" class="mini" data-accueil="classeur">Ouvrir le Classeur</button></div>
+  </div>`;
 }
 
 export function marquerJeu(jeu) {
@@ -157,6 +171,10 @@ export function basculerJeu(jeu) {
 
 // Écouteurs et réglages de départ (appelé une fois par app.js)
 export function initCollection() {
+  $("#classeur").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-accueil]"); if (!b) return;
+    document.querySelector(b.dataset.accueil === "scan" ? "#bouton-ajouter" : '.nav-item[data-vue="classeur"]').click();
+  });
   document.querySelectorAll(".filtres .puces").forEach((g) => g.addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     g.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));

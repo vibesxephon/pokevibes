@@ -1,5 +1,5 @@
 /* PokeVibes — Animations d'entrée (référence : docs/animation-reference.html) et « text roll ». */
-import { $, calme, esc, PC } from "./commun.js?v=15";
+import { $, calme, esc, PC } from "./commun.js?v=16";
 
 /* ================= Animations d'entrée =================
    Référence validée : docs/animation-reference.html (inspiration vastworld.ai).
@@ -119,7 +119,7 @@ export function entreeConnexion() {
   animer(c.querySelector("img"), "embleme", 0);
   animerTitre(c.querySelector("h1"), 500);
   animer(c.querySelector("h1 + p"), "bloc", 1700);
-  animer(c.querySelector("form"), "bouton", 2100);
+  animer(c.querySelector(".connexion-corps"), "bouton", 2100);
 }
 
 // Changement d'onglet : même style, rythme resserré pour ne pas faire attendre
@@ -182,7 +182,7 @@ export function rollBarreLaterale() { if (PC.matches) document.querySelectorAll(
 
 // Écouteurs et réglages de départ (appelé une fois par app.js)
 export function initAnimations() {
-  document.querySelectorAll(".bouton-principal, .connexion-carte button, .bouton-scanner").forEach(preparerRoll);
+  document.querySelectorAll(".bouton-principal, .connexion-carte .bouton-envoi, .bouton-scanner").forEach(preparerRoll);
   rollBarreLaterale();
   PC.addEventListener?.("change", rollBarreLaterale);
 }

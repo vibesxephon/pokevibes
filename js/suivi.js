@@ -1,7 +1,7 @@
 /* PokeVibes — Wishlist, alertes de prix et historique (calculs purs, testés dans tests/suivi.test.js).
    Une carte est repérée par son produit (produit_id, si quelqu'un de L'Équipage l'a déjà ajoutée)
    et / ou par son identifiant du catalogue TCGdex (tcgdex_id, ex. « swsh7-215 »). */
-import { euro, dateLongue } from "./format.js?v=15";
+import { euro, dateLongue } from "./format.js?v=16";
 
 // Deux références désignent-elles la même carte ? (favori, alerte ou carte de la fiche)
 export function memeCarte(a, b) {

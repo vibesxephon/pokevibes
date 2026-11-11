@@ -1,28 +1,30 @@
-/* PokeVibes — Fiche d'une carte, qu'on la possède ou non (ma collection, la vitrine d'un membre, le Classeur,
+/* PokeVibes — Fiche d'une carte, qu'on la possède ou non (ma collection, le Classeur,
    la recherche, la Wishlist) : grande image, prix Cardmarket FR, Favori / Alerte / Retirer, gain-perte, min, max,
    et l'historique des prix sur 7 j / 30 j / 90 j / tout.
    Fenêtre sur iPhone, fenêtre centrée sur tablette et petit PC, panneau à droite de la liste dès 1200 px. */
-import { $, esc, euro, GRAND_ECRAN, pct, dateLongue } from "./commun.js?v=15";
-import { etat, sb } from "./etat.js?v=15";
-import { etiquetteTendance, graphique } from "./prix.js?v=15";
-import { PERIODES, historiqueValide, pointsSurPeriode, periodeParDefaut, extremes, gainPerte, alertesDeLaCarte } from "./suivi.js?v=15";
-import { entreeFiche, animer, dessinerCourbe } from "./animations.js?v=15";
-import { chargerCollection } from "./collection.js?v=15";
-import { depuisProduit, completerCarte, possession } from "./cartes.js?v=15";
-import { estFavori, basculerFavori } from "./wishlist.js?v=15";
-import { ouvrirAlerte, htmlAlertes, actionAlerte } from "./alertes.js?v=15";
-import { message } from "./badges-ui.js?v=15";
+import { $, esc, euro, GRAND_ECRAN, pct, dateLongue } from "./commun.js?v=16";
+import { etat, sb } from "./etat.js?v=16";
+import { etiquetteTendance, graphique } from "./prix.js?v=16";
+import { PERIODES, historiqueValide, pointsSurPeriode, periodeParDefaut, extremes, gainPerte, alertesDeLaCarte } from "./suivi.js?v=16";
+import { entreeFiche, animer, dessinerCourbe } from "./animations.js?v=16";
+import { chargerCollection } from "./collection.js?v=16";
+import { depuisProduit, completerCarte, possession } from "./cartes.js?v=16";
+import { estFavori, basculerFavori } from "./wishlist.js?v=16";
+import { ouvrirAlerte, htmlAlertes, actionAlerte } from "./alertes.js?v=16";
+import { message, verifierBadges } from "./badges-ui.js?v=16";
+import { preparerPhoto, envoyerPhoto } from "./photo.js?v=16";
 
 let carte = null, points = [], periode = "30", tourFiche = 0;
 const SOURCES = { airtable: "relevé Airtable", api_fr: "Cardmarket FR (automatique)", manuel: "saisie manuelle", catalogue: "Cardmarket FR (relevé de l'extension)", collection: "Cardmarket FR (automatique)" };
 const ICONES = {
   etoile: `<svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>`,
   cloche: `<svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0" fill="none"/></svg>`,
+  photo: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`,
   retirer: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg>`,
 };
 const jourCourt = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
-// Ouvre la fiche d'une carte (objet de cartes.js) ou d'une ligne de ma collection / de la vitrine
+// Ouvre la fiche d'une carte (objet de cartes.js) ou d'une ligne de ma collection
 export async function ouvrirFiche(source) {
   const tour = ++tourFiche;
   const c = source.produit_id !== undefined && "prix" in source ? source : depuisProduit(source);
@@ -41,7 +43,8 @@ export async function ouvrirFiche(source) {
   const pos = possession(c);
   $("#fiche-contenu").innerHTML = `
     <div class="fiche-tete">
-      <span class="visuel fiche-visuel ${c.categorie === "scelle" ? "scelle" : ""}">${c.image ? `<img src="${esc(c.image)}" alt="">` : `<span class="sans-image">${esc(c.type_scelle ?? c.rarete ?? "Carte")}</span>`}</span>
+      <span class="visuel fiche-visuel ${c.categorie === "scelle" ? "scelle" : ""}" id="fiche-visuel">${c.image ? `<img src="${esc(c.image)}" alt="">` : `<span class="sans-image">${esc(c.type_scelle ?? c.rarete ?? "Carte")}</span>`}</span>
+      ${!c.image && c.produit_id != null ? htmlPhoto() : ""}
       <h2>${esc(c.nom)}</h2>
       <p class="fiche-ref">${esc([c.extension, c.numero, c.rarete].filter(Boolean).join(" · "))}</p>
       ${c.defaut ? `<p class="defaut">Exemplaire avec défaut</p>` : ""}
@@ -91,6 +94,19 @@ export async function ouvrirFiche(source) {
   brancher(c, pos);
 }
 
+// Produit sans image : chacun peut ajouter sa photo, visible ensuite par tout L'Équipage
+function htmlPhoto() {
+  return `<div class="photo-ajout" id="photo-ajout">
+    <label class="bouton-photo" for="photo-fichier">${ICONES.photo}<span>Ajouter ma photo</span></label>
+    <input type="file" id="photo-fichier" class="sr-only" accept="image/*">
+    <p class="infos" id="photo-aide">Appareil photo ou fichier. Ta photo sera visible par tout L'Équipage.</p>
+    <div class="photo-confirmer" id="photo-confirmer" hidden role="group" aria-labelledby="photo-question">
+      <p id="photo-question">Envoyer cette photo ? Elle remplacera l'emplacement vide pour tout le monde et ne pourra plus être changée.</p>
+      <div><button type="button" class="mini mini-plein" id="photo-envoyer">Envoyer la photo</button><label class="mini" for="photo-fichier">Choisir une autre</label><button type="button" class="mini" id="photo-annuler">Annuler</button></div>
+    </div>
+  </div>`;
+}
+
 // Les 3 cases : gain / perte (si on possède la carte avec un prix d'achat), prix min, prix max
 function htmlCases(c, pos) {
   const gp = pos?.prix_achat != null ? gainPerte(c.prix, pos.prix_achat) : null;
@@ -138,6 +154,7 @@ function brancher(c, pos) {
     animer($("#graphe .graphe-aire"), "bloc", 0);
     dessinerCourbe($("#graphe svg"), 0);
   });
+  brancherPhoto(c);
   if (!pos) return;
   const retrait = $("#fiche-retrait");
   const demanderRetrait = () => { retrait.hidden = false; animer(retrait, "bouton", 0); $("#retrait-non").focus(); };
@@ -169,6 +186,46 @@ function brancher(c, pos) {
   });
 }
 
+// « Ajouter ma photo » : aperçu réduit, confirmation, envoi
+function brancherPhoto(c) {
+  const input = $("#photo-fichier"); if (!input) return;
+  const visuel = $("#fiche-visuel"), confirmer = $("#photo-confirmer"), msg = (t) => { $("#fiche-message").textContent = t; };
+  let prete = null, apercu = null;
+  const vider = () => { if (apercu) URL.revokeObjectURL(apercu); apercu = null; prete = null; };
+  const montrerImage = (src) => { visuel.innerHTML = `<img src="${esc(src)}" alt="">`; animer(visuel.firstChild, "bloc", 0); };
+  input.addEventListener("change", async () => {
+    const fichier = input.files?.[0]; input.value = "";
+    if (!fichier) return;
+    msg("Préparation de la photo…");
+    try { prete = await preparerPhoto(fichier); }
+    catch (e) { vider(); msg(e.message); return; }
+    if (carte !== c) return; // fiche refermée entre-temps
+    if (apercu) URL.revokeObjectURL(apercu);
+    apercu = URL.createObjectURL(prete.blob);
+    montrerImage(apercu);
+    msg(`Photo prête : ${prete.largeur} × ${prete.hauteur} px, ${Math.max(1, Math.round(prete.blob.size / 1024))} Ko.`);
+    confirmer.hidden = false; $("#photo-ajout").classList.add("confirmation"); animer(confirmer, "bouton", 0); $("#photo-envoyer").focus();
+  });
+  $("#photo-annuler").addEventListener("click", () => {
+    vider(); confirmer.hidden = true; $("#photo-ajout").classList.remove("confirmation"); msg("");
+    visuel.innerHTML = `<span class="sans-image">${esc(c.type_scelle ?? c.rarete ?? "Carte")}</span>`;
+    input.focus();
+  });
+  $("#photo-envoyer").addEventListener("click", async () => {
+    if (!prete) return;
+    const b = $("#photo-envoyer"); b.disabled = true; b.textContent = "Envoi…";
+    const r = await envoyerPhoto(c.produit_id, prete.blob);
+    if (!r.ok && !r.deja) { b.disabled = false; b.textContent = "Réessayer l'envoi"; msg(r.message); return; }
+    vider();
+    if (r.url) { c.image = r.url; montrerImage(r.url); }
+    $("#photo-ajout").remove();
+    msg(r.message);
+    if (r.ok) message(r.message);
+    await chargerCollection();
+    if (r.ok) verifierBadges();
+  });
+}
+
 // Fiche : panneau à droite de la liste (≥ 1200 px, la liste reste utilisable), sinon fenêtre comme avant
 export function ouvrirFenetreFiche() {
   const f = $("#fiche"), panneau = GRAND_ECRAN.matches;
@@ -181,11 +238,11 @@ export function ouvrirFenetreFiche() {
 
 // Écouteurs et réglages de départ (appelé une fois par app.js)
 export function initFiche() {
-  // Une pochette (ma collection ou la vitrine d'un membre) ouvre sa fiche
+  // Une pochette de ma collection ouvre sa fiche
   document.addEventListener("click", async (e) => {
     const p = e.target.closest(".pochette"); if (!p) return;
     const id = Number(p.dataset.id), defaut = p.dataset.defaut === "true";
-    const x = (p.closest("#classeur") ? etat.toutes : etat.vitrine).find((y) => y.produit_id === id && y.defaut === defaut);
+    const x = etat.toutes.find((y) => y.produit_id === id && y.defaut === defaut);
     if (x) ouvrirFiche(x);
   });
   $("#fiche").addEventListener("close", () => { document.body.classList.remove("avec-panneau"); carte = null; });

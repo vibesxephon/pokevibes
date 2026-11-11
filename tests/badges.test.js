@@ -14,9 +14,9 @@ const carte = (o) => ({ categorie: "carte", jeu: "pokemon", quantite: 1, prix_ac
 const stats = (o) => ({ cartes: 0, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [], ...o });
 const repete = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 
-test("configuration : 33 badges complets, identifiants uniques, 8 familles", () => {
-  assert.equal(BADGES.length, 33);
-  assert.equal(new Set(BADGES.map((b) => b.id)).size, 33);
+test("configuration : 34 badges complets, identifiants uniques, 8 familles", () => {
+  assert.equal(BADGES.length, 34);
+  assert.equal(new Set(BADGES.map((b) => b.id)).size, 34);
   assert.deepEqual(FAMILLES, ["Scanner", "Collection", "Scellé", "Classeur", "Explorateur", "Investisseur", "Wishlist", "Secrets"]);
   for (const b of BADGES) {
     assert.ok(FAMILLES.includes(b.famille), `${b.id} : famille`);
@@ -156,6 +156,12 @@ test("Wishlist : premier vœu, sentinelle (5 alertes), bonne affaire", () => {
   assert.ok(!gagne("bonne-affaire", { alertes: declenchee, lignes: [carte({ produit_id: 3, achete_le: new Date(MIDI - 9 * jour).toISOString().slice(0, 10) })] }));
   // une alerte en pause (créée puis jamais déclenchée) ne suffit pas
   assert.ok(!gagne("bonne-affaire", { alertes: alertes(1), lignes: [carte({ produit_id: 0, achete_le: "2026-11-10" })] }));
+});
+
+test("Photographe : une photo de produit ajoutée", () => {
+  assert.ok(!gagne("photographe", {}));
+  assert.ok(gagne("photographe", { photos: 1 }));
+  assert.equal(BADGES.find((b) => b.id === "photographe").rarete, "bronze");
 });
 
 test("Secrets : heures d'ouverture (2 h–5 h, 5 h–7 h)", () => {

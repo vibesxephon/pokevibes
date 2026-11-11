@@ -1,12 +1,12 @@
 /* PokeVibes — Navigation entre les vues et raccourcis clavier. */
-import { $ } from "./commun.js?v=15";
-import { etat } from "./etat.js?v=15";
-import { entreeVue } from "./animations.js?v=15";
-import { dessinerCollection } from "./collection.js?v=15";
-import { chargerEquipage } from "./equipage.js?v=15";
-import { chargerClasseur, dessinerClasseurListe, ouvrirSet } from "./classeur.js?v=15";
-import { dessinerMesBadges } from "./badges-ui.js?v=15";
-import { dessinerWishlist } from "./wishlist.js?v=15";
+import { $ } from "./commun.js?v=16";
+import { etat } from "./etat.js?v=16";
+import { entreeVue } from "./animations.js?v=16";
+import { dessinerCollection } from "./collection.js?v=16";
+import { chargerEquipage } from "./equipage.js?v=16";
+import { chargerClasseur, dessinerClasseurListe, ouvrirSet } from "./classeur.js?v=16";
+import { dessinerMesBadges } from "./badges-ui.js?v=16";
+import { dessinerWishlist } from "./wishlist.js?v=16";
 
 /* ================= Navigation : barre du bas et choix du jeu ================= */
 export function montrerVue(v) {

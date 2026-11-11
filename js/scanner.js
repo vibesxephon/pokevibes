@@ -1,14 +1,14 @@
 /* PokeVibes — Ajout d'une carte ou de scellé : scanner (IA, lecture du numéro), recherche, PC (glisser-déposer, fichier, webcam). */
-import { $, avecDelai, calme, esc, euro, NOM_JEU, sansAccent } from "./commun.js?v=15";
-import { ajout, etat, sb } from "./etat.js?v=15";
-import { ouvrirFiche } from "./fiche.js?v=15";
-import { depuisCatalogue } from "./cartes.js?v=15";
-import { rechercheLocale } from "./recherche.js?v=15";
-import { issueScan } from "./badges-regles.js?v=15";
-import { catalogue, chargerIndex, prixConnus, RARETES, setsPokemon, TCG } from "./catalogue.js?v=15";
-import { basculerJeu, chargerCollection } from "./collection.js?v=15";
-import { chargerClasseur, dessinerClasseurListe, marquerDestination, ouvrirSet, proposerDestination } from "./classeur.js?v=15";
-import { noterActivite, verifierBadges } from "./badges-ui.js?v=15";
+import { $, avecDelai, calme, esc, euro, NOM_JEU, sansAccent } from "./commun.js?v=16";
+import { ajout, etat, sb } from "./etat.js?v=16";
+import { ouvrirFiche } from "./fiche.js?v=16";
+import { depuisCatalogue } from "./cartes.js?v=16";
+import { rechercheLocale } from "./recherche.js?v=16";
+import { issueScan } from "./badges-regles.js?v=16";
+import { catalogue, chargerIndex, prixConnus, RARETES, setsPokemon, TCG } from "./catalogue.js?v=16";
+import { basculerJeu, chargerCollection } from "./collection.js?v=16";
+import { chargerClasseur, dessinerClasseurListe, marquerDestination, ouvrirSet, proposerDestination } from "./classeur.js?v=16";
+import { noterActivite, verifierBadges } from "./badges-ui.js?v=16";
 
 export function choisirType(t) {
   ajout.type = t; ajout.choix = null;
