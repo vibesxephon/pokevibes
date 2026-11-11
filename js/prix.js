@@ -1,5 +1,5 @@
 /* PokeVibes — prix, valeur, plus-value et tendance 30 jours (calculs purs, testés dans tests/prix.test.js). */
-import { euro } from "./format.js?v=15";
+import { euro } from "./format.js?v=16";
 
 // Un même produit acheté à des prix différents (ex. 3 ETB 30 Ans) = une seule pochette
 export function fusionner(lignes) {
@@ -64,23 +64,54 @@ export const parPrix = (a, b) => Number(b.prix_actuel ?? -1) - Number(a.prix_act
 /* Graphique de l'historique (fiche carte). points : [{ le: "AAAA-MM-JJ", prix }] triés, au moins 2.
    Abscisse proportionnelle aux dates ; une marge en haut et en bas pour que la courbe ne touche pas les bords.
    Le dernier prix est marqué par un point (en HTML, pour rester rond quelle que soit la largeur). */
-export function graphique(points, { titre = "" } = {}) {
-  const W = 320, H = 120, marge = 0.12;
+/* Position de chaque relevé dans le graphique, en fraction de la largeur et de la hauteur (0 à 1) */
+export function coordonnees(points, marge = 0.12) {
   const t = points.map((p) => new Date(p.le).getTime()), v = points.map((p) => Number(p.prix));
   const t0 = t[0], t1 = t.at(-1), min = Math.min(...v), max = Math.max(...v);
-  const x = (i) => (t1 === t0 ? (i / Math.max(1, points.length - 1)) : (t[i] - t0) / (t1 - t0)) * W;
-  const y = (i) => (max === min ? H / 2 : H * (1 - marge - (1 - 2 * marge) * ((v[i] - min) / (max - min))));
+  return points.map((p, i) => ({
+    x: t1 === t0 ? i / Math.max(1, points.length - 1) : (t[i] - t0) / (t1 - t0),
+    y: max === min ? 0.5 : 1 - marge - (1 - 2 * marge) * ((v[i] - min) / (max - min)),
+    le: p.le, prix: v[i],
+  }));
+}
+
+// Relevé le plus proche d'une position horizontale (fraction 0 à 1 de la largeur)
+export function pointProche(coords, fx) {
+  let meilleur = 0;
+  for (let i = 1; i < coords.length; i++) if (Math.abs(coords[i].x - fx) < Math.abs(coords[meilleur].x - fx)) meilleur = i;
+  return meilleur;
+}
+
+// Bord gauche de la bulle (en px) : centrée sur le point, mais toujours entière dans la zone (marge de 4 px)
+export function placerBulle(xPoint, largeurBulle, largeurZone, marge = 4) {
+  const gauche = xPoint - largeurBulle / 2;
+  return Math.round(Math.max(marge, Math.min(gauche, largeurZone - largeurBulle - marge)));
+}
+
+// Texte de la bulle : « 9 nov. 2026 · 45,00 € »
+export const texteBulle = (p) => `${new Date(p.le).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })} · ${euro(p.prix)}`;
+
+export function graphique(points, { titre = "" } = {}) {
+  const W = 320, H = 120;
+  const v = points.map((p) => Number(p.prix)), c = coordonnees(points);
+  const x = (i) => c[i].x * W, y = (i) => c[i].y * H;
   const r = (n) => Math.round(n * 10) / 10;
   const xy = points.map((_, i) => `${r(x(i))},${r(y(i))}`).join(" ");
   const aire = `M${r(x(0))},${H} L${xy.replace(/ /g, " L")} L${r(x(points.length - 1))},${H} Z`;
   const jour = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   const hausse = v.at(-1) >= v[0];
-  return `<div class="graphe-zone ${hausse ? "hausse" : "baisse"}">
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution du prix${titre ? ` ${titre}` : ""} : de ${euro(v[0])} le ${jour(points[0].le)} à ${euro(v.at(-1))} le ${jour(points.at(-1).le)}">
+  // Relevés pour la bulle (courbe.js) : [x, y, date, prix]
+  const donnees = JSON.stringify(c.map((p) => [Math.round(p.x * 1e4) / 1e4, Math.round(p.y * 1e4) / 1e4, p.le, p.prix]));
+  return `<div class="graphe-zone ${hausse ? "hausse" : "baisse"}" tabindex="0" data-releves='${donnees}'
+      role="slider" aria-valuemin="1" aria-valuemax="${points.length}" aria-valuenow="${points.length}" aria-valuetext="${texteBulle(c.at(-1))}"
+      aria-label="Courbe du prix${titre ? ` ${titre}` : ""}, de ${euro(v[0])} le ${jour(points[0].le)} à ${euro(v.at(-1))} le ${jour(points.at(-1).le)}">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
         <path class="graphe-aire" d="${aire}"/>
         <polyline class="graphe-ligne" points="${xy}" pathLength="1" fill="none" stroke-width="2.5" vector-effect="non-scaling-stroke"/>
       </svg>
       <span class="graphe-point" style="left:${r((x(points.length - 1) / W) * 100)}%;top:${r((y(points.length - 1) / H) * 100)}%" aria-hidden="true"></span>
+      <span class="graphe-repere" aria-hidden="true"></span><span class="graphe-curseur" aria-hidden="true"></span>
+      <span class="graphe-bulle" aria-hidden="true"></span>
     </div>
     <div class="graphe-axe" aria-hidden="true"><span>${jour(points[0].le)}</span><span>${points.length} relevés</span><span>${jour(points.at(-1).le)}</span></div>`;
 }

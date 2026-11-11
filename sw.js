@@ -1,16 +1,16 @@
 // Service worker : garde l'interface en cache pour un démarrage rapide.
 // Les données (Supabase) passent toujours par le réseau pour rester à jour.
-const VERSION = "pokevibes-v15";
+const VERSION = "pokevibes-v16";
 // Tous les fichiers de l'interface, à l'adresse exacte où la page les demande (avec ?v=…).
 // tests/modules.test.js vérifie que cette liste est complète et à la bonne version.
 const COQUILLE = [
-  "./", "index.html", "style.css?v=15", "app.js?v=15",
-  "badges.js?v=15", "config.js?v=15", "js/alertes.js?v=15", "js/animations.js?v=15",
-  "js/badges-regles.js?v=15", "js/badges-ui.js?v=15", "js/cartes.js?v=15", "js/catalogue.js?v=15",
-  "js/classeur.js?v=15", "js/collection.js?v=15", "js/commun.js?v=15", "js/connexion.js?v=15",
-  "js/equipage.js?v=15", "js/etat.js?v=15", "js/fiche.js?v=15", "js/format.js?v=15",
-  "js/navigation.js?v=15", "js/prix.js?v=15", "js/progression.js?v=15", "js/recherche.js?v=15",
-  "js/scanner.js?v=15", "js/suivi.js?v=15", "js/theme.js?v=15", "js/wishlist.js?v=15",
+  "./", "index.html", "style.css?v=16", "app.js?v=16",
+  "badges.js?v=16", "config.js?v=16", "js/alertes.js?v=16", "js/animations.js?v=16",
+  "js/badges-regles.js?v=16", "js/badges-ui.js?v=16", "js/cartes.js?v=16", "js/catalogue.js?v=16",
+  "js/classeur.js?v=16", "js/collection.js?v=16", "js/commun.js?v=16", "js/comptes.js?v=16", "js/connexion.js?v=16", "js/courbe.js?v=16",
+  "js/equipage.js?v=16", "js/etat.js?v=16", "js/fiche.js?v=16", "js/format.js?v=16", "js/image.js?v=16",
+  "js/navigation.js?v=16", "js/photo.js?v=16", "js/prix.js?v=16", "js/progression.js?v=16", "js/recherche.js?v=16",
+  "js/scanner.js?v=16", "js/suivi.js?v=16", "js/theme.js?v=16", "js/wishlist.js?v=16",
   "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/embleme-112.png",
   "icons/favicon-32.png", "icons/apple-touch-icon.png",
 ];

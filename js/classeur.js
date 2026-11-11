@@ -1,12 +1,12 @@
 /* PokeVibes — Classeur : remplir ses extensions carte par carte. */
-import { $, esc, euro, sansAccent } from "./commun.js?v=15";
-import { ajout, etat, sb } from "./etat.js?v=15";
-import { ouvrirFiche } from "./fiche.js?v=15";
-import { depuisCatalogue } from "./cartes.js?v=15";
-import { compteSet, destinationConseillee } from "./progression.js?v=15";
-import { chargerIndex, prixConnus } from "./catalogue.js?v=15";
-import { aAnimer, animerListe, ecrireTitre, entreeBlocs, entreeVue, rythme } from "./animations.js?v=15";
-import { verifierBadges } from "./badges-ui.js?v=15";
+import { $, esc, euro, sansAccent } from "./commun.js?v=16";
+import { ajout, etat, sb } from "./etat.js?v=16";
+import { ouvrirFiche } from "./fiche.js?v=16";
+import { depuisCatalogue } from "./cartes.js?v=16";
+import { compteSet, destinationConseillee } from "./progression.js?v=16";
+import { chargerIndex, prixConnus } from "./catalogue.js?v=16";
+import { aAnimer, animerListe, ecrireTitre, entreeBlocs, entreeVue, rythme } from "./animations.js?v=16";
+import { verifierBadges } from "./badges-ui.js?v=16";
 
 export function marquerDestination(d, aide) {
   ajout.destination = d;

@@ -1,7 +1,7 @@
 // Valeur totale, gain / perte, tendance 30 jours.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fusionner, totaux, tendanceDepuisDetail, tendanceMoyenne, etiquetteTendance, graphique } from "../js/prix.js";
+import { fusionner, totaux, tendanceDepuisDetail, tendanceMoyenne, etiquetteTendance, graphique, coordonnees, pointProche, placerBulle, texteBulle } from "../js/prix.js";
 import { euro, pct } from "../js/format.js";
 
 // Une ligne de ma_collection = un achat (valeur = prix actuel × quantité, cout = prix d'achat × quantité)
@@ -99,7 +99,7 @@ test("étiquette de tendance : stable sous 2 %, sinon hausse ou baisse arrondie"
 
 test("graphique de l'historique : du premier au dernier prix, abscisse selon les dates", () => {
   const g = espaces(graphique([{ le: "2026-11-01", prix: 10 }, { le: "2026-11-02", prix: 30 }, { le: "2026-11-11", prix: 20 }], { titre: "sur 30 jours" }));
-  assert.match(g, /Évolution du prix sur 30 jours : de 10,00 € le 1 nov\. à 20,00 € le 11 nov\./);
+  assert.match(g, /Courbe du prix sur 30 jours, de 10,00 € le 1 nov\. à 20,00 € le 11 nov\./);
   assert.match(g, /3 relevés/);
   // 2 nov. est à 1/10 de la largeur (320) : x = 32 ; le prix max (30) est en haut, à la marge (12 % de 120)
   assert.match(g, /points="0,105\.6 32,14\.4 320,60"/);
@@ -107,4 +107,22 @@ test("graphique de l'historique : du premier au dernier prix, abscisse selon les
   assert.match(graphique([{ le: "2026-11-01", prix: 30 }, { le: "2026-11-02", prix: 20 }]), /graphe-zone baisse/);
   // prix constant : ligne au milieu
   assert.match(graphique([{ le: "2026-11-01", prix: 5 }, { le: "2026-11-03", prix: 5 }]), /points="0,60 320,60"/);
+});
+
+test("courbe interactive : relevé le plus proche du doigt, bulle gardée dans l'écran", () => {
+  const c = coordonnees([{ le: "2026-11-01", prix: 10 }, { le: "2026-11-02", prix: 30 }, { le: "2026-11-11", prix: 20 }]);
+  assert.deepEqual(c.map((p) => Math.round(p.x * 100)), [0, 10, 100]);
+  assert.equal(c[1].y, 0.12); // le plus haut prix touche la marge du haut
+  assert.equal(pointProche(c, 0), 0);
+  assert.equal(pointProche(c, 0.04), 0);
+  assert.equal(pointProche(c, 0.06), 1);
+  assert.equal(pointProche(c, 0.7), 2);
+  assert.equal(placerBulle(160, 120, 320), 100);   // au milieu : centrée sur le point
+  assert.equal(placerBulle(5, 120, 320), 4);       // bord gauche : collée au bord, pas dehors
+  assert.equal(placerBulle(318, 120, 320), 196);   // bord droit : 320 - 120 - 4
+  assert.equal(espaces(texteBulle({ le: "2026-11-09", prix: 45 })), "9 nov. 2026 · 45,00 €");
+  const g = graphique([{ le: "2026-11-01", prix: 10 }, { le: "2026-11-09", prix: 45 }]);
+  assert.match(g, /role="slider"/);
+  assert.match(espaces(g), /aria-valuetext="9 nov\. 2026 · 45,00 €"/);
+  assert.match(g, /data-releves='\[\[0,0\.88,"2026-11-01",10\],\[1,0\.12,"2026-11-09",45\]\]'/);
 });

@@ -119,6 +119,11 @@ const DESSINS = {
     return cas(16, 26, CIEL) + cas(3, 47, VERT) + G("M7 42q2-6 8-8q-4 4-5 8z") + G("M20 21q2-6 8-8q-4 4-5 8z");
   })(),
 
+  // Appareil photo : boîtier bronze, objectif bleu ciel, éclair du flash
+  photographe: pieces(`<rect x="20" y="10" width="20" height="10" rx="3" fill="${BZ}"/>`, `<rect x="4" y="16" width="52" height="36" rx="8" fill="${BZ}"/>`, `<circle cx="30" cy="34" r="13" fill="${AG}"/>`) +
+    `<circle cx="30" cy="34" r="8" fill="${CIEL}" ${K}/><circle cx="27" cy="31" r="2.5" fill="#fff" opacity=".8"/><rect x="43" y="21" width="8" height="5" rx="2" fill="${PAILLE}" ${K} stroke-width="1.6"/>` +
+    `<path d="M10 22h6" ${K}/>${G("M8 20q3-3 8-3h-2q-4 1-5 6z")}`,
+
   /* ---------- Investisseur ---------- */
   // Une pousse qui sort du pot
   "premier-gain": pieces(`<path d="M30 24C21 25 14 19 14 9C23 9 30 15 30 24Z" fill="${VERT}"/>`, `<path d="M30 21C30 12 36 5 47 5C47 14 41 21 30 21Z" fill="${VERT}"/>`, `<path d="M17 39H43L39 56H21Z" fill="${BZ}"/>`, `<rect x="13" y="33" width="34" height="8" rx="3" fill="${BZ}"/>`) +
@@ -189,6 +194,7 @@ export const BADGES = [
   { id: "globe-trotteur", nom: "Globe-trotteur", famille: "Explorateur", rarete: "argent", condition: "Avoir des cartes de 10 extensions différentes.", mesure: (d) => d.extensions, cible: 10, unite: "extensions" },
   { id: "pirate", nom: "Pirate", famille: "Explorateur", rarete: "bronze", condition: "Ajouter sa première carte One Piece.", mesure: (d) => d.cartesOnePiece, cible: 1, unite: "carte One Piece" },
   { id: "double-casquette", nom: "Double casquette", famille: "Explorateur", rarete: "argent", condition: "Avoir 10 cartes Pokémon et 10 cartes One Piece.", mesure: (d) => Math.min(d.cartesPokemon, d.cartesOnePiece), cible: 10, unite: "de chaque jeu" },
+  { id: "photographe", nom: "Photographe", famille: "Explorateur", rarete: "bronze", condition: "Ajouter la photo d'un produit qui n'avait pas d'image (bouton « Ajouter ma photo » de la fiche).", mesure: (d) => d.photos ?? 0, cible: 1, unite: "photo" },
 
   { id: "premier-gain", nom: "Premier gain", famille: "Investisseur", rarete: "bronze", condition: "Avoir une carte qui vaut plus que son prix d'achat.", mesure: (d) => (d.gainMaxPct > 0 ? 1 : 0), cible: 1 },
   { id: "bon-flair", nom: "Bon flair", famille: "Investisseur", rarete: "argent", condition: "Avoir une carte qui a pris 30 % depuis son achat.", mesure: (d) => Math.max(0, Math.floor(d.gainMaxPct)), cible: 30, unite: "%" },

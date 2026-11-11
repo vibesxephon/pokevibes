@@ -82,7 +82,7 @@ img { max-width: 100%; }
   width: 100%; padding: 13px 12px; border-radius: 12px;
   border: 0; background: var(--surface);
 }
-.connexion-carte button {
+.connexion-carte .bouton-envoi {
   margin-top: 20px; width: 100%; padding: 15px; border: 0; border-radius: 14px;
   background: var(--encre); color: var(--carton); font-weight: 600; cursor: pointer;
 }
@@ -307,7 +307,6 @@ img { max-width: 100%; }
 }
 .membres button[aria-pressed="true"] { border-color: var(--score); }
 .membres .pseudo { font: 700 1.05rem var(--titre); }
-.membres .valeur { font: 700 1.1rem var(--titre); font-variant-numeric: tabular-nums; }
 
 /* ---------- Fiche et fenêtre d'ajout ---------- */
 .fiche {
@@ -424,9 +423,9 @@ img { max-width: 100%; }
 }
 .roll:focus-visible .roll-a, .roll:focus-visible .roll-b { transform: translateY(-100%); }
 /* Bouton clair en mode sombre : le jaune vif n'y serait pas lisible, on prend un jaune foncé */
-:root[data-theme="sombre"] .bouton-principal, :root[data-theme="sombre"] .connexion-carte button { --roll-copie: #6E5600; }
+:root[data-theme="sombre"] .bouton-principal, :root[data-theme="sombre"] .connexion-carte .bouton-envoi { --roll-copie: #6E5600; }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="clair"]) .bouton-principal, :root:not([data-theme="clair"]) .connexion-carte button { --roll-copie: #6E5600; }
+  :root:not([data-theme="clair"]) .bouton-principal, :root:not([data-theme="clair"]) .connexion-carte .bouton-envoi { --roll-copie: #6E5600; }
 }
 /* Mouvement réduit : la copie remplace le libellé sur place, sans glisser */
 @media (prefers-reduced-motion: reduce) {
@@ -826,3 +825,71 @@ img { max-width: 100%; }
   .wishlist { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
   .wishlist-barre { max-width: none; }
 }
+
+/* ================= v16 : courbe des prix interactive ================= */
+.graphe-zone { touch-action: pan-y; cursor: crosshair; outline: none; border-radius: 8px; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.graphe-zone:focus-visible { outline: 3px solid var(--score); outline-offset: 4px; }
+.graphe-repere, .graphe-curseur, .graphe-bulle { position: absolute; left: 0; top: 0; pointer-events: none; opacity: 0; transition: opacity .16s ease; }
+.graphe-repere { height: 100%; width: 0; border-left: 1.5px dashed currentColor; margin-left: -.75px; }
+.graphe-curseur { width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--pochette); border: 3px solid currentColor; }
+.graphe-bulle { top: -38px; padding: 6px 10px; border-radius: 10px; white-space: nowrap; font: 600 .8rem/1.2 var(--texte, inherit); font-variant-numeric: tabular-nums;
+  color: var(--carton); background: var(--encre); box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+.graphe-zone.lecture .graphe-repere, .graphe-zone.lecture .graphe-curseur, .graphe-zone.lecture .graphe-bulle { opacity: 1; }
+.graphe-zone.lecture .graphe-repere { opacity: .55; }
+.graphe-zone.lecture .graphe-point { opacity: 0; }
+.graphe { padding-top: 40px; }
+@media (prefers-reduced-motion: reduce) { .graphe-repere, .graphe-curseur, .graphe-bulle { transition: none; } }
+
+/* ================= v16 : comptes ================= */
+.onglets { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface); margin-bottom: 4px; }
+.onglets button { min-height: 44px; border: 0; border-radius: 11px; background: transparent; color: var(--encre-douce); font: 600 .95rem var(--texte); cursor: pointer; }
+.onglets button[aria-selected="true"] { background: var(--pochette); color: var(--encre); box-shadow: 0 1px 4px rgb(0 0 0 / .1); }
+.connexion-carte input[aria-invalid="true"] { box-shadow: inset 0 0 0 2px var(--perte); }
+.liens-connexion { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; margin-top: 12px; }
+.liens-connexion .lien-discret { min-height: 44px; padding: 0; }
+.aide-oubli { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--score-pale); font-size: .9rem; }
+.message.erreur { color: var(--perte); font-weight: 600; }
+.mini-plein { background: var(--score); color: var(--sur-score); border-color: var(--score); }
+label.mini { display: inline-flex; align-items: center; }
+
+/* Mon compte (en haut de la page des badges) */
+.compte { margin: 12px 0 8px; padding: 16px; border-radius: 18px; background: var(--pochette); }
+.compte-tete { display: flex; align-items: center; gap: 12px; }
+.compte-initiale, .membre-initiale { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; overflow: hidden;
+  background: var(--badge); color: var(--score); font: 700 1.1rem var(--titre); }
+.membre-initiale img { width: 100%; height: 100%; object-fit: cover; }
+.compte-pseudo { margin: 0; font: 700 1.2rem var(--titre); }
+.compte-email { margin: 0; color: var(--encre-douce); font-size: .9rem; overflow-wrap: anywhere; }
+.compte > .lien-discret { min-height: 44px; margin-top: 6px; padding: 0; }
+.form-mdp { display: grid; gap: 6px; margin-top: 4px; max-width: 420px; }
+.form-mdp label { font-weight: 600; margin-top: 6px; }
+.form-mdp input:not([hidden]) { padding: 12px; border: 0; border-radius: 12px; background: var(--surface); }
+.form-mdp input[aria-invalid="true"] { box-shadow: inset 0 0 0 2px var(--perte); }
+.form-mdp .mini { justify-self: start; min-height: 44px; margin-top: 8px; padding: 0 16px; font-size: .9rem; }
+.form-mdp .message { margin-top: 4px; }
+
+/* L'Équipage : la liste des membres */
+.membre { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--rayon); background: var(--pochette); }
+.membre.moi { box-shadow: inset 0 0 0 2px var(--score); }
+.membre-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.membre .badges-membre { margin-top: 6px; }
+
+/* Collection vide : message d'accueil */
+.accueil { margin: 20px 0; padding: 20px; border-radius: 18px; background: var(--pochette); max-width: 560px; }
+.accueil h3 { margin: 0 0 6px; font: 700 1.25rem var(--titre); }
+.accueil p { margin: 0 0 8px; color: var(--encre-douce); }
+.accueil ul { margin: 0 0 14px; padding-left: 1.2em; display: grid; gap: 8px; }
+.accueil-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.accueil-actions .mini { min-height: 44px; padding: 0 16px; font-size: .9rem; }
+
+/* ================= v16 : photo d'un produit ================= */
+.photo-ajout { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: -2px 0 8px; max-width: 320px; }
+.bouton-photo { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 99px; cursor: pointer;
+  background: var(--score); color: var(--sur-score); font: 600 .95rem var(--texte); }
+.photo-ajout:has(#photo-fichier:focus-visible) .bouton-photo { outline: 3px solid var(--encre); outline-offset: 2px; }
+.photo-ajout > .infos { margin: 0; font-size: .8rem; }
+.photo-confirmer { display: grid; gap: 8px; margin-top: 4px; padding: 12px; border-radius: 14px; background: var(--surface); text-align: left; }
+.photo-confirmer p { margin: 0; font-size: .9rem; font-weight: 600; }
+.photo-confirmer div { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-confirmer .mini { min-height: 40px; }
+.photo-ajout.confirmation .bouton-photo, .photo-ajout.confirmation > .infos { display: none; }

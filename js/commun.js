@@ -1,5 +1,5 @@
 /* PokeVibes — utilitaires communs côté page (sélecteur, préférences du téléphone, tailles d'écran). */
-export * from "./format.js?v=15";
+export * from "./format.js?v=16";
 
 export const $ = (s) => document.querySelector(s);
 export const calme = matchMedia("(prefers-reduced-motion: reduce)").matches;
