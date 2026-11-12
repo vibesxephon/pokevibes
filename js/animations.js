@@ -1,5 +1,5 @@
 /* PokeVibes — Animations d'entrée (référence : docs/animation-reference.html) et « text roll ». */
-import { $, calme, esc, PC } from "./commun.js?v=16";
+import { $, calme, esc, PC } from "./commun.js?v=17";
 
 /* ================= Animations d'entrée =================
    Référence validée : docs/animation-reference.html (inspiration vastworld.ai).

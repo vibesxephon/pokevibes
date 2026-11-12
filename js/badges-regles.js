@@ -1,9 +1,9 @@
 /* PokeVibes — calcul des conditions des badges (pur : sans page ni réseau, testé dans tests/badges.test.js).
    Les badges eux-mêmes (nom, rareté, condition, mesure, cible, dessin) sont décrits dans badges.js. */
-import { BADGES } from "../badges.js?v=16";
-import { sansAccent, jourLocal } from "./format.js?v=16";
-import { compteSet } from "./progression.js?v=16";
-import { bonneAffaire } from "./suivi.js?v=16";
+import { BADGES } from "../badges.js?v=17";
+import { sansAccent, jourLocal } from "./format.js?v=17";
+import { compteSet } from "./progression.js?v=17";
+import { bonneAffaire } from "./suivi.js?v=17";
 
 export const mesurer = (b, d) => { try { return Number(b.mesure(d)) || 0; } catch { return 0; } };
 
@@ -27,13 +27,14 @@ export const issueScan = (sig, choisi) => (sig != null && choisi === sig ? "scan
 
 // Statistiques du Classeur (Pokémon) ; sans index des cartes, seuls les nombres de cartes sont connus
 export function statsClasseurPur(classeur, idx) {
-  const r = { cartes: classeur.size, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [] };
+  const r = { cartes: classeur.size, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [], completes: [] };
   for (const x of classeur.values()) r.quantite += x.quantite ?? 1;
   if (!idx) return r;
   for (const sid of new Set([...classeur.values()].map((x) => x.set_id))) {
     const k = compteSet(idx, sid, classeur);
     r.meilleurePct = Math.max(r.meilleurePct, k.pct);
     if (k.pct >= 50) r.extensions50++;
+    if (k.pct >= 100 && sid) r.completes.push(sid); // extension complète : XP « extension_complete »
     if (k.nbSec > 0 && k.secretes === k.nbSec) r.secretes = true;
     if (k.set?.nom) r.noms.push(k.set.nom);
   }
@@ -59,8 +60,8 @@ export function compterSniperPur(lignes, historique) {
    activite : journal (scan, scan_reconnu, scan_corrige, ouverture) ; lignes : ma_collection (une ligne par exemplaire acheté) ;
    classeur : résultat de statsClasseurPur ; ventes : table ventes ; creeLe : date d'inscription ;
    favoris, alertes : Wishlist et alertes de prix du membre ; produitDe : Map tcgdex_id → produit_id (pour « Bonne affaire ») ;
-   photos : nombre de photos de produits ajoutées par le membre (« Photographe »). */
-export function donneesBadges({ activite = [], lignes = [], classeur, sniper = 0, ventes = [], creeLe = null, favoris = [], alertes = [], produitDe = new Map(), photos = 0, maintenant = Date.now() }) {
+   photos : nombre de photos de produits ajoutées par le membre (« Photographe ») ; konami : code Konami trouvé (badge secret). */
+export function donneesBadges({ activite = [], lignes = [], classeur, sniper = 0, ventes = [], creeLe = null, favoris = [], alertes = [], produitDe = new Map(), photos = 0, konami = false, maintenant = Date.now() }) {
   const a = activite, cl = classeur ?? { cartes: 0, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [] };
   const somme = (l) => l.reduce((t, x) => t + (Number(x.quantite) || 0), 0);
   const scans = a.filter((x) => x.type === "scan");
@@ -100,5 +101,6 @@ export function donneesBadges({ activite = [], lignes = [], classeur, sniper = 0
     alertes: alertes.length,
     bonneAffaire: bonneAffaire(alertes, lignes, produitDe),
     photos,
+    konami: konami ? 1 : 0,
   };
 }

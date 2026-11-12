@@ -29,12 +29,13 @@ Calculs purs, sans page ni réseau (testés) :
 | `suivi.js` | Wishlist, alertes de prix, historique (périodes, min / max, gain / perte) |
 | `comptes.js` | Formulaires de connexion et d'inscription, messages d'erreur en français, ordre des membres |
 | `image.js` | Photo d'un produit : taille réduite (1200 px), poids max, chemin dans le stockage |
+| `niveaux.js` | Niveaux de dresseur : titres des 50 niveaux et des deux camps, barre « 340 / 460 XP », date de Paris pour la connexion du jour, code Konami (l'XP elle-même est calculée par le serveur) |
 | `progression.js` | Progression d'une extension du Classeur, règle Collection / Classeur |
 | `badges-regles.js` | Conditions des badges, journal (ouverture, scan reconnu / corrigé) |
 | `recherche.js` | Recherche locale des cartes (nom, numéro) |
 | `format.js` | Mise en forme (euros, pourcentages, dates) |
 
-Modules de la page : `connexion.js` (comptes), `collection.js`, `classeur.js`, `scanner.js`, `fiche.js`, `cartes.js`, `wishlist.js`, `alertes.js`, `courbe.js` (bulle de la courbe), `photo.js` (envoi d'une photo), `equipage.js`, `badges-ui.js`, `animations.js`, `navigation.js`, `theme.js`, `catalogue.js`, avec `commun.js` (utilitaires de page) et `etat.js` (Supabase et état partagé). Chacun expose une fonction `init…()` appelée une fois par `app.js`.
+Modules de la page : `connexion.js` (comptes), `collection.js`, `classeur.js`, `scanner.js`, `fiche.js`, `cartes.js`, `wishlist.js`, `alertes.js`, `courbe.js` (bulle de la courbe), `photo.js` (envoi d'une photo), `equipage.js`, `badges-ui.js`, `xp.js` (XP via les RPC gagner_xp / choisir_camp, écrans de niveau et de camp, Konami), `sons.js` (sons arcade en Web Audio, coupés par défaut), `animations.js`, `navigation.js`, `theme.js`, `catalogue.js`, avec `commun.js` (utilitaires de page) et `etat.js` (Supabase et état partagé). Chacun expose une fonction `init…()` appelée une fois par `app.js`.
 
 ### Version
 

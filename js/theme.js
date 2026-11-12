@@ -1,5 +1,5 @@
 /* PokeVibes — Mode sombre : automatique (réglage du téléphone) ou choisi avec le bouton lune / soleil. */
-import { $ } from "./commun.js?v=16";
+import { $ } from "./commun.js?v=17";
 
 /* ================= Mode sombre ================= */
 export const sombreSysteme = matchMedia("(prefers-color-scheme: dark)");

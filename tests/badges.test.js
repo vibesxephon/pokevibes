@@ -14,9 +14,9 @@ const carte = (o) => ({ categorie: "carte", jeu: "pokemon", quantite: 1, prix_ac
 const stats = (o) => ({ cartes: 0, quantite: 0, meilleurePct: 0, extensions50: 0, secretes: false, noms: [], ...o });
 const repete = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 
-test("configuration : 34 badges complets, identifiants uniques, 8 familles", () => {
-  assert.equal(BADGES.length, 34);
-  assert.equal(new Set(BADGES.map((b) => b.id)).size, 34);
+test("configuration : 35 badges complets, identifiants uniques, 8 familles", () => {
+  assert.equal(BADGES.length, 35);
+  assert.equal(new Set(BADGES.map((b) => b.id)).size, 35);
   assert.deepEqual(FAMILLES, ["Scanner", "Collection", "Scellé", "Classeur", "Explorateur", "Investisseur", "Wishlist", "Secrets"]);
   for (const b of BADGES) {
     assert.ok(FAMILLES.includes(b.famille), `${b.id} : famille`);
@@ -24,7 +24,7 @@ test("configuration : 34 badges complets, identifiants uniques, 8 familles", () 
     assert.ok(b.dessin?.includes("<"), `${b.id} : dessin`);
     assert.ok(b.cible > 0 && typeof b.mesure === "function" && b.nom && b.condition, `${b.id} : condition`);
   }
-  assert.deepEqual(BADGES.filter((b) => b.secret).map((b) => b.id), ["oiseau-de-nuit", "leve-tot", "fidele", "un-an-deja"]);
+  assert.deepEqual(BADGES.filter((b) => b.secret).map((b) => b.id), ["oiseau-de-nuit", "leve-tot", "fidele", "un-an-deja", "konami"]);
 });
 
 test("membre tout neuf : aucun badge", () => {
@@ -93,6 +93,9 @@ test("statistiques du Classeur à partir des cartes cochées", () => {
   const s = statsClasseurPur(classeur, idx);
   assert.deepEqual([s.cartes, s.quantite, s.meilleurePct, s.extensions50, s.secretes], [4, 5, 100, 1, true]);
   assert.deepEqual(s.noms.sort(), ["A", "B"]);
+  // extensions complètes à 100 % (XP « extension_complete », une fois par extension)
+  assert.deepEqual(s.completes, ["a"]);
+  assert.deepEqual(statsClasseurPur(classeur, null).completes, []);
   // index indisponible : seuls les nombres de cartes sont connus
   assert.deepEqual([statsClasseurPur(classeur, null).cartes, statsClasseurPur(classeur, null).meilleurePct], [4, 0]);
 });
@@ -162,6 +165,13 @@ test("Photographe : une photo de produit ajoutée", () => {
   assert.ok(!gagne("photographe", {}));
   assert.ok(gagne("photographe", { photos: 1 }));
   assert.equal(BADGES.find((b) => b.id === "photographe").rarete, "bronze");
+});
+
+test("Code secret (Konami) : badge secret, gagné quand le code a été tapé", () => {
+  const b = BADGES.find((x) => x.id === "konami");
+  assert.equal(b.rarete, "secret"); assert.equal(b.secret, true); assert.equal(b.famille, "Secrets"); assert.ok(b.dessin.length > 100);
+  assert.ok(!gagne("konami", {}));
+  assert.ok(gagne("konami", { konami: true }));
 });
 
 test("Secrets : heures d'ouverture (2 h–5 h, 5 h–7 h)", () => {

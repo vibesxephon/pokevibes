@@ -2,7 +2,7 @@
    Toucher ou cliquer (et survoler à la souris) montre le relevé le plus proche ; glisser le doigt fait suivre
    la bulle ; flèches gauche / droite (Début / Fin) au clavier. La bulle reste dans l'écran sur les bords.
    Un seul jeu d'écouteurs pour toutes les courbes, même dessinées plus tard (période changée, autre fiche). */
-import { pointProche, placerBulle, texteBulle } from "./prix.js?v=16";
+import { pointProche, placerBulle, texteBulle } from "./prix.js?v=17";
 
 const releves = (zone) => { try { return JSON.parse(zone.dataset.releves).map(([x, y, le, prix]) => ({ x, y, le, prix })); } catch { return []; } };
 

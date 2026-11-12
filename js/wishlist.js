@@ -1,14 +1,14 @@
 /* PokeVibes — Wishlist : les cartes guettées (étoile de la fiche), avec leur prix, leur tendance et les alertes.
    Les favoris et les alertes du membre sont chargés une fois puis tenus à jour ici ; toute modification
    envoie l'événement « suivi » pour que la fiche et la Wishlist se redessinent. */
-import { $, esc, euro } from "./commun.js?v=16";
-import { etat, sb } from "./etat.js?v=16";
-import { etiquetteTendance } from "./prix.js?v=16";
-import { memeCarte, trierWishlist, alertesDeLaCarte } from "./suivi.js?v=16";
-import { aAnimer, animerListe } from "./animations.js?v=16";
-import { cartesDesFavoris, possession } from "./cartes.js?v=16";
-import { verifierBadges } from "./badges-ui.js?v=16";
-import { ouvrirFiche } from "./fiche.js?v=16";
+import { $, esc, euro } from "./commun.js?v=17";
+import { etat, sb } from "./etat.js?v=17";
+import { etiquetteTendance } from "./prix.js?v=17";
+import { memeCarte, trierWishlist, alertesDeLaCarte } from "./suivi.js?v=17";
+import { aAnimer, animerListe } from "./animations.js?v=17";
+import { cartesDesFavoris, possession } from "./cartes.js?v=17";
+import { verifierBadges } from "./badges-ui.js?v=17";
+import { ouvrirFiche } from "./fiche.js?v=17";
 
 export const signalerSuivi = () => document.dispatchEvent(new CustomEvent("suivi"));
 

@@ -1,14 +1,15 @@
 /* PokeVibes — Ajout d'une carte ou de scellé : scanner (IA, lecture du numéro), recherche, PC (glisser-déposer, fichier, webcam). */
-import { $, avecDelai, calme, esc, euro, NOM_JEU, sansAccent } from "./commun.js?v=16";
-import { ajout, etat, sb } from "./etat.js?v=16";
-import { ouvrirFiche } from "./fiche.js?v=16";
-import { depuisCatalogue } from "./cartes.js?v=16";
-import { rechercheLocale } from "./recherche.js?v=16";
-import { issueScan } from "./badges-regles.js?v=16";
-import { catalogue, chargerIndex, prixConnus, RARETES, setsPokemon, TCG } from "./catalogue.js?v=16";
-import { basculerJeu, chargerCollection } from "./collection.js?v=16";
-import { chargerClasseur, dessinerClasseurListe, marquerDestination, ouvrirSet, proposerDestination } from "./classeur.js?v=16";
-import { noterActivite, verifierBadges } from "./badges-ui.js?v=16";
+import { $, avecDelai, calme, esc, euro, NOM_JEU, sansAccent } from "./commun.js?v=17";
+import { ajout, etat, sb } from "./etat.js?v=17";
+import { ouvrirFiche } from "./fiche.js?v=17";
+import { depuisCatalogue } from "./cartes.js?v=17";
+import { rechercheLocale } from "./recherche.js?v=17";
+import { issueScan } from "./badges-regles.js?v=17";
+import { catalogue, chargerIndex, prixConnus, RARETES, setsPokemon, TCG } from "./catalogue.js?v=17";
+import { basculerJeu, chargerCollection } from "./collection.js?v=17";
+import { chargerClasseur, dessinerClasseurListe, marquerDestination, ouvrirSet, proposerDestination } from "./classeur.js?v=17";
+import { noterActivite, verifierBadges } from "./badges-ui.js?v=17";
+import { gagner } from "./xp.js?v=17";
 
 export function choisirType(t) {
   ajout.type = t; ajout.choix = null;
@@ -136,7 +137,8 @@ export async function scannerPhoto(f, input = null) {
   if (!f || scanEnCours) return;
   scanEnCours = true;
   ajout.scanIA = null;
-  noterActivite("scan");
+  // chaque scan rapporte de l'XP (clé : la ligne d'activité créée, plafond du jour géré par le serveur)
+  noterActivite("scan").then((id) => { if (id != null) gagner("scan", `scan:${id}`, { cible: () => $("#scan-statut") }); });
   const statut = $("#scan-statut");
   statut.classList.add("en-cours");
   statut.textContent = "Photo reçue, préparation… 📸";
@@ -391,6 +393,7 @@ export function initScanner() {
       r = await sb.rpc("classeur_modifier", { p_tcgdex_id: ajout.choix.tcgdex_id, p_delta: q });
       if (r.error) { msg.textContent = `Ajout impossible : ${r.error.message}`; return; }
       msg.textContent = "Rangée dans le Classeur ✅";
+      gagner("classeur", `classeur:${ajout.choix.tcgdex_id}`, { cible: msg });
       noterIssueScan();
       verifierBadges();
       await chargerClasseur();
@@ -415,6 +418,7 @@ export function initScanner() {
     }
     if (r.error) { msg.textContent = `Ajout impossible : ${r.error.message}`; return; }
     msg.textContent = "Ajouté ✅ Le prix s'affichera après le relevé de cette nuit.";
+    if (ajout.type === "scelle" && r.data != null) gagner("scelle", `scelle:${r.data}`, { cible: msg });
     noterIssueScan();
     await chargerCollection();
     setTimeout(() => $("#ajout").close(), 900);

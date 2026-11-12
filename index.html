@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 
@@ -71,7 +71,7 @@
         <svg class="ico-lune" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
         <svg class="ico-soleil" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       </button>
-      <button id="bouton-badges" class="profil" type="button" aria-label="Mon compte et mes badges"><span id="initiale" aria-hidden="true">?</span><span id="profil-nom" class="profil-nom" aria-hidden="true"></span></button>
+      <button id="bouton-badges" class="profil" type="button" aria-label="Mon compte et mes badges"><span id="initiale" aria-hidden="true">?</span><span class="profil-texte" aria-hidden="true"><span id="profil-nom" class="profil-nom"></span><span class="profil-niveau"><span class="niveau-pastille" id="niveau-pastille">Nv –</span><span class="xp-fine"><span id="xp-fine"></span></span></span></span></button>
     </span>
   </header>
 
@@ -151,7 +151,7 @@
   <!-- L'Équipage -->
   <section id="vue-equipage" class="vue" hidden>
     <h2 class="titre-vue">L'Équipage</h2>
-    <p class="intro-vue">Les membres et leurs badges. Les collections restent privées.</p>
+    <p class="intro-vue">Les membres, du plus haut niveau au plus petit, avec leurs titres et leurs badges. Les collections restent privées.</p>
     <ul id="membres" class="membres"></ul>
   </section>
 
@@ -190,6 +190,34 @@
         <p id="mdp-message" class="message" role="status"></p>
       </form>
     </section>
+    <!-- v17 : niveau de dresseur, titre, camp (tout est calculé par le serveur) -->
+    <section class="jeu-profil" id="jeu-profil" aria-labelledby="jeu-titre">
+      <div class="jeu-tete">
+        <div class="jeu-niveau" aria-hidden="true"><span>Niveau</span><strong id="jeu-niveau">–</strong></div>
+        <div class="jeu-noms">
+          <h2 class="jeu-titre"><span class="sr-only" id="jeu-titre-lu"></span><span id="jeu-titre">…</span></h2>
+          <p class="jeu-camp" id="jeu-camp"></p>
+        </div>
+      </div>
+      <div class="barre-xp" id="jeu-barre-zone" role="progressbar" aria-label="Expérience dans le niveau" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="jeu-barre"></span></div>
+      <p class="jeu-xp" id="jeu-xp"></p>
+      <div class="jeu-actions">
+        <button type="button" class="mini" id="bouton-camp" hidden>Choisir mon camp</button>
+        <p class="infos camp-note" id="camp-note" hidden></p>
+        <button type="button" class="mini bouton-son" id="bouton-son" aria-pressed="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="onde" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="barre-muet" d="M16 9l6 6M22 9l-6 6"/></svg>
+          <span>Sons arcade : <span class="son-etat">coupés</span></span></button>
+      </div>
+    </section>
+    <section class="xp-recent" aria-labelledby="xp-recent-titre">
+      <h3 class="sous-titre" id="xp-recent-titre">Derniers gains d'XP</h3>
+      <ul id="xp-historique" class="xp-historique"></ul>
+    </section>
+    <details class="niveaux">
+      <summary>Les 50 niveaux et leurs titres</summary>
+      <p class="infos">À partir du niveau 25, ton titre dépend de ton camp : 🏆 Ligue Pokémon ou 🚀 Team Rocket.</p>
+      <ol id="niveaux-liste" class="niveaux-liste"></ol>
+    </details>
     <h2 class="titre-vue">Mes badges</h2>
     <div class="badges-compteur">
       <p><strong id="badges-nb">0</strong> <span id="badges-total">/ 30</span></p>
@@ -238,6 +266,17 @@
 </dialog>
 
 <p id="toast" class="toast" role="status" hidden></p>
+<p id="xp-annonce" class="sr-only" role="status"></p>
+
+<!-- Passage de niveau / nouveau titre (plein écran court) -->
+<dialog id="niveau" class="deblocage niveau-ecran" aria-labelledby="niv-titre">
+  <div class="deb-contenu niv-contenu" id="niv-contenu"></div>
+</dialog>
+
+<!-- Niveau 25 : choisis ton camp -->
+<dialog id="camp" class="deblocage camp-ecran" aria-labelledby="camp-titre">
+  <div class="camp-contenu" id="camp-contenu"></div>
+</dialog>
 
 <!-- Alerte de prix (depuis la fiche d'une carte) -->
 <dialog id="alerte" class="fiche fenetre-alerte" aria-labelledby="alerte-titre">
@@ -365,6 +404,6 @@
   </div>
 </dialog>
 
-<script type="module" src="app.js?v=16"></script>
+<script type="module" src="app.js?v=17"></script>
 </body>
 </html>
