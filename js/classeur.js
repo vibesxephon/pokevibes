@@ -1,12 +1,13 @@
 /* PokeVibes — Classeur : remplir ses extensions carte par carte. */
-import { $, esc, euro, sansAccent } from "./commun.js?v=16";
-import { ajout, etat, sb } from "./etat.js?v=16";
-import { ouvrirFiche } from "./fiche.js?v=16";
-import { depuisCatalogue } from "./cartes.js?v=16";
-import { compteSet, destinationConseillee } from "./progression.js?v=16";
-import { chargerIndex, prixConnus } from "./catalogue.js?v=16";
-import { aAnimer, animerListe, ecrireTitre, entreeBlocs, entreeVue, rythme } from "./animations.js?v=16";
-import { verifierBadges } from "./badges-ui.js?v=16";
+import { $, esc, euro, sansAccent } from "./commun.js?v=17";
+import { ajout, etat, sb } from "./etat.js?v=17";
+import { ouvrirFiche } from "./fiche.js?v=17";
+import { depuisCatalogue } from "./cartes.js?v=17";
+import { compteSet, destinationConseillee } from "./progression.js?v=17";
+import { chargerIndex, prixConnus } from "./catalogue.js?v=17";
+import { aAnimer, animerListe, ecrireTitre, entreeBlocs, entreeVue, rythme } from "./animations.js?v=17";
+import { verifierBadges } from "./badges-ui.js?v=17";
+import { gagner } from "./xp.js?v=17";
 
 export function marquerDestination(d, aide) {
   ajout.destination = d;
@@ -142,6 +143,10 @@ export function initClasseur() {
     const idx = await chargerIndex(); dessinerSet(idx);
     const { error } = await sb.rpc("classeur_modifier", { p_tcgdex_id: id, p_delta: delta });
     if (error) { await chargerClasseur(); dessinerSet(idx); $("#cs-compte").textContent = `Pas enregistré : ${error.message}. Réessaie.`; }
-    else verifierBadges();
+    else {
+      verifierBadges();
+      // carte cochée : XP une seule fois par carte (la décocher puis la recocher ne rapporte rien de plus)
+      if (delta > 0) gagner("classeur", `classeur:${id}`, { cible: () => document.querySelector(`#cs-cartes .cc[data-id="${CSS.escape(id)}"]`) });
+    }
   });
 }

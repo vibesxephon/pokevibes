@@ -1,6 +1,6 @@
 /* PokeVibes — Catalogue des cartes (TCGdex / OPTCG via notre relais) et prix déjà connus. */
-import { cleNum, sansAccent } from "./commun.js?v=16";
-import { etat, sb, SUPABASE_KEY, SUPABASE_URL } from "./etat.js?v=16";
+import { cleNum, sansAccent } from "./commun.js?v=17";
+import { etat, sb, SUPABASE_KEY, SUPABASE_URL } from "./etat.js?v=17";
 
 /* ================= Catalogue (TCGdex / OPTCG via notre relais) ================= */
 export async function catalogue(url) {

@@ -1,12 +1,13 @@
 /* PokeVibes — Navigation entre les vues et raccourcis clavier. */
-import { $ } from "./commun.js?v=16";
-import { etat } from "./etat.js?v=16";
-import { entreeVue } from "./animations.js?v=16";
-import { dessinerCollection } from "./collection.js?v=16";
-import { chargerEquipage } from "./equipage.js?v=16";
-import { chargerClasseur, dessinerClasseurListe, ouvrirSet } from "./classeur.js?v=16";
-import { dessinerMesBadges } from "./badges-ui.js?v=16";
-import { dessinerWishlist } from "./wishlist.js?v=16";
+import { $ } from "./commun.js?v=17";
+import { etat } from "./etat.js?v=17";
+import { entreeVue } from "./animations.js?v=17";
+import { dessinerCollection } from "./collection.js?v=17";
+import { chargerEquipage } from "./equipage.js?v=17";
+import { chargerClasseur, dessinerClasseurListe, ouvrirSet } from "./classeur.js?v=17";
+import { dessinerMesBadges } from "./badges-ui.js?v=17";
+import { dessinerWishlist } from "./wishlist.js?v=17";
+import { chargerHistorique, dessinerProfil } from "./xp.js?v=17";
 
 /* ================= Navigation : barre du bas et choix du jeu ================= */
 export function montrerVue(v) {
@@ -22,7 +23,7 @@ export function montrerVue(v) {
   entreeVue(v);
   if (v === "equipage") chargerEquipage();
   else if (v === "classeur") chargerClasseur().then(() => (etat.setOuvert ? ouvrirSet(etat.setOuvert, true) : dessinerClasseurListe()));
-  else if (v === "badges") dessinerMesBadges();
+  else if (v === "badges") { dessinerProfil(); chargerHistorique(); dessinerMesBadges(); }
   else if (v === "wishlist") dessinerWishlist();
   else dessinerCollection();
 }

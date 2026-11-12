@@ -1,13 +1,13 @@
 /* PokeVibes — Alertes de prix : la fenêtre « Prévenez-moi quand le prix passe… » et la liste des alertes d'une carte.
    Le site crée, modifie, réactive ou supprime les alertes ; le robot des prix les vérifie à chaque passage,
    publie dans le salon Discord de L'Équipage et désactive l'alerte déclenchée. */
-import { $, esc } from "./commun.js?v=16";
-import { etat, sb } from "./etat.js?v=16";
-import { seuilPropose, alertesDeLaCarte, libelleAlerte, dejaFranchi } from "./suivi.js?v=16";
-import { euro } from "./format.js?v=16";
-import { animer } from "./animations.js?v=16";
-import { verifierBadges } from "./badges-ui.js?v=16";
-import { signalerSuivi } from "./wishlist.js?v=16";
+import { $, esc } from "./commun.js?v=17";
+import { etat, sb } from "./etat.js?v=17";
+import { seuilPropose, alertesDeLaCarte, libelleAlerte, dejaFranchi } from "./suivi.js?v=17";
+import { euro } from "./format.js?v=17";
+import { animer } from "./animations.js?v=17";
+import { verifierBadges } from "./badges-ui.js?v=17";
+import { signalerSuivi } from "./wishlist.js?v=17";
 
 let enCours = null; // { carte, alerte (si on modifie), sens, touche (le seuil a été tapé à la main) }
 

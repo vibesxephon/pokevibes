@@ -1,9 +1,9 @@
 /* PokeVibes — une carte telle que la fiche et la Wishlist l'affichent, quelle que soit son origine :
    ma collection, le catalogue TCGdex (Classeur, recherche) ou un favori.
    Les informations manquantes sont complétées depuis la base (produit, prix actuel, tendance 30 jours). */
-import { etat, sb } from "./etat.js?v=16";
-import { chargerIndex, prixConnus } from "./catalogue.js?v=16";
-import { tendanceDepuisDetail } from "./prix.js?v=16";
+import { etat, sb } from "./etat.js?v=17";
+import { chargerIndex, prixConnus } from "./catalogue.js?v=17";
+import { tendanceDepuisDetail } from "./prix.js?v=17";
 
 // Depuis une ligne de ma collection (vue ma_collection) ou un produit
 export const depuisProduit = (x) => ({

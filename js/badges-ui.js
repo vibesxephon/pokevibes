@@ -1,14 +1,16 @@
 /* PokeVibes — Badges : journal d'activité, vérification, déblocage plein écran, page « Mes badges ». */
-import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "../badges.js?v=16";
-import { $, calme, dateCourte, dateLongue, ecrireLocal, esc, lireLocal } from "./commun.js?v=16";
-import { etat, sb } from "./etat.js?v=16";
-import { produitsDesAlertes } from "./wishlist.js?v=16";
-import { compterMesPhotos } from "./photo.js?v=16";
-import { badgesAGagner, compterSniperPur, donneesBadges, mesurer, ouvertureANoter, progresTexte, statsClasseurPur } from "./badges-regles.js?v=16";
-import { chargerIndex } from "./catalogue.js?v=16";
-import { aAnimer, animer, EZ, preparerRoll, rythme } from "./animations.js?v=16";
-import { montrerVue } from "./navigation.js?v=16";
-import { chargerClasseur } from "./classeur.js?v=16";
+import { BADGES, RARETES as RARETES_BADGES, FAMILLES, svgBadge } from "../badges.js?v=17";
+import { $, calme, dateCourte, dateLongue, ecrireLocal, esc, lireLocal } from "./commun.js?v=17";
+import { etat, sb } from "./etat.js?v=17";
+import { produitsDesAlertes } from "./wishlist.js?v=17";
+import { compterMesPhotos } from "./photo.js?v=17";
+import { badgesAGagner, compterSniperPur, donneesBadges, mesurer, ouvertureANoter, progresTexte, statsClasseurPur } from "./badges-regles.js?v=17";
+import { chargerIndex } from "./catalogue.js?v=17";
+import { aAnimer, animer, EZ, preparerRoll, rythme } from "./animations.js?v=17";
+import { montrerVue } from "./navigation.js?v=17";
+import { chargerClasseur } from "./classeur.js?v=17";
+import { gagner, gagnerBadges, resumeNiveau, xpBadges } from "./xp.js?v=17";
+import { jouer } from "./sons.js?v=17";
 
 export async function chargerJournal() {
   etat.journalPret = false;
@@ -30,14 +32,18 @@ export async function chargerJournal() {
   } catch (e) { console.warn("Badges indisponibles pour l'instant :", e?.message ?? e); }
 }
 
+// Renvoie l'identifiant de la ligne créée (il sert de clé unique à l'XP d'un scan)
 export async function noterActivite(type, detail = null) {
-  if (!etat.moi) return;
+  if (!etat.moi) return null;
   etat.activite.push({ type, le: new Date().toISOString() });
+  let id = null;
   try {
-    const { error } = await sb.from("activite").insert({ membre_id: etat.moi.id, type, detail });
+    const { data, error } = await sb.from("activite").insert({ membre_id: etat.moi.id, type, detail }).select("id").maybeSingle();
     if (error) console.warn("Activité non enregistrée :", error.message);
+    id = data?.id ?? null;
   } catch (e) { console.warn("Activité non enregistrée :", e?.message ?? e); }
   if (type !== "ouverture") verifierBadges();
+  return id;
 }
 
 // Statistiques du Classeur (Pokémon) : progression de chaque extension
@@ -74,7 +80,7 @@ export async function lancerVerification() {
     await chargerClasseur().catch(() => {});
     const [cl, sniper, produitDe, photos] = await Promise.all([statsClasseur(), compterSniper().catch(() => 0), produitsDesAlertes().catch(() => new Map()), compterMesPhotos()]);
     const d = etat.donnees = donneesBadges({ activite: etat.activite, lignes: etat.lignes ?? [], classeur: cl, sniper, ventes: etat.ventes, creeLe: etat.moi?.cree_le,
-      favoris: etat.favoris ?? [], alertes: etat.alertes ?? [], produitDe, photos });
+      favoris: etat.favoris ?? [], alertes: etat.alertes ?? [], produitDe, photos, konami: lireLocal(`konami-${etat.moi.id}`) === "1" });
     const nouveaux = badgesAGagner(d, etat.badges);
     const cleInit = `badges-init-${etat.moi.id}`;
     const premierLancement = etat.badges.size === 0 && !lireLocal(cleInit);
@@ -84,9 +90,12 @@ export async function lancerVerification() {
         .upsert(nouveaux.map((b) => ({ membre_id: etat.moi.id, badge_id: b.id, obtenu_le: le })), { onConflict: "membre_id,badge_id", ignoreDuplicates: true });
       if (error) throw error;
       nouveaux.forEach((b) => etat.badges.set(b.id, le));
+      gagnerBadges(nouveaux, premierLancement); // XP selon la rareté (sans effet au premier lancement)
       if (premierLancement) message(`Tu as déjà gagné ${nouveaux.length} badge${nouveaux.length > 1 ? "s" : ""} ! Retrouve-les en touchant ton avatar.`);
       else annoncer(nouveaux);
     }
+    // Extension complétée à 100 % : XP une seule fois par extension (la clé l'assure côté serveur)
+    for (const sid of cl.completes ?? []) gagner("extension_complete", `ext:${sid}`);
     ecrireLocal(cleInit, "1");
     majAvatar();
     if (!$("#vue-badges").hidden) dessinerMesBadges();
@@ -98,7 +107,8 @@ export async function lancerVerification() {
 }
 
 export function majAvatar() {
-  $("#bouton-badges").setAttribute("aria-label", `Mon compte et mes badges : ${etat.badges.size} sur ${BADGES.length}`);
+  const niveau = resumeNiveau();
+  $("#bouton-badges").setAttribute("aria-label", `Mon compte et mes badges : ${niveau ? `${niveau}, ` : ""}${etat.badges.size} badges sur ${BADGES.length}`);
 }
 
 // Message bref (premier lancement)
@@ -124,6 +134,9 @@ export function annoncer(badges) {
 
 export function badgeSuivant() {
   if ($("#deblocage").open) return;
+  // Un écran de niveau ou de camp est ouvert : le badge attend qu'il se ferme
+  const autre = ["#niveau", "#camp"].map((x) => $(x)).find((d) => d?.open);
+  if (autre) { autre.addEventListener("close", () => setTimeout(badgeSuivant, 400), { once: true }); return; }
   // Pas d'interruption pendant un ajout : les badges gagnés attendent que la fenêtre se ferme
   if ($("#ajout").open) { $("#ajout").addEventListener("close", () => setTimeout(badgeSuivant, 400), { once: true }); return; }
   const b = fileBadges.shift();
@@ -144,14 +157,17 @@ export function montrerBadge(b, deblocage = false) {
       <div class="deb-svg">${svgBadge(b, { verrouille: cache, label: cache ? "Badge secret" : undefined })}</div>
       ${obtenu && b.rarete === "holo" ? `<span class="reflet" style='--masque:${masque(b)}'></span>` : ""}
     </div>
+    <p class="deb-xp" ${deblocage && xpBadges.has(b.id) ? "" : "hidden"}>+${xpBadges.get(b.id) ?? 0} XP</p>
     <p class="deb-statut">${deblocage ? "Nouveau badge débloqué" : obtenu ? `Obtenu le ${dateLongue(obtenu)}` : "Pas encore obtenu"}</p>
     <h2 id="deb-nom">${cache ? "???" : esc(b.nom)}</h2>
     <span class="rarete rarete-${b.rarete}">${rarete.nom} · ${esc(b.famille)}</span>
     <p class="deb-condition">${cache ? "Badge secret : continue d'utiliser PokeVibes pour le découvrir." : esc(b.condition)}</p>
     ${!obtenu && !cache && progres(b) ? `<p class="deb-progres">${progres(b)}</p>` : ""}
     <form method="dialog"><button class="bouton-principal" autofocus>${deblocage ? "Super" : "Fermer"}</button></form>`;
+  c.dataset.badge = deblocage ? b.id : "";
   preparerRoll(c.querySelector(".bouton-principal"));
   $("#deblocage").showModal();
+  if (deblocage) jouer("badge");
   // Animation de la référence : de petit, penché et flou à un léger rebond, puis taille normale
   rythme.debut = performance.now();
   const badge = c.querySelector(".deb-badge");
@@ -161,7 +177,7 @@ export function montrerBadge(b, deblocage = false) {
     { transform: "scale(1.18) rotate(4deg)", filter: "blur(0)", opacity: 1, offset: .65 },
     { transform: "scale(1) rotate(0)", opacity: 1 }], { duration: 1100, easing: EZ, fill: "backwards" });
   else animer(badge, "embleme", 0);
-  [".deb-statut", "#deb-nom", ".rarete", ".deb-condition", ".deb-progres", "form"].forEach((s, i) => animer(c.querySelector(s), "bloc", (deblocage ? 500 : 150) + i * 110));
+  [".deb-statut", ".deb-xp:not([hidden])", "#deb-nom", ".rarete", ".deb-condition", ".deb-progres", "form"].forEach((s, i) => animer(c.querySelector(s), "bloc", (deblocage ? 500 : 150) + i * 110));
 }
 
 export function dessinerMesBadges() {

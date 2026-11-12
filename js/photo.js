@@ -1,8 +1,8 @@
 /* PokeVibes — « Ajouter ma photo » pour un produit sans image : l'image est réduite (1200 px au plus) et
    compressée en JPEG (moins de 1 Mo) dans le navigateur, envoyée dans le stockage « photos-produits »,
    puis posée sur le produit par definir_photo_produit (refusé si quelqu'un l'a fait entre-temps). */
-import { etat, sb } from "./etat.js?v=16";
-import { COTE_MAX, POIDS_MAX, QUALITES, dimensionsReduites, cheminPhoto, estImage, messageErreurPhoto } from "./image.js?v=16";
+import { etat, sb } from "./etat.js?v=17";
+import { COTE_MAX, POIDS_MAX, QUALITES, dimensionsReduites, cheminPhoto, estImage, messageErreurPhoto } from "./image.js?v=17";
 
 // Lit le fichier (photo de l'appareil ou fichier), tient compte de son orientation
 async function decoder(fichier) {

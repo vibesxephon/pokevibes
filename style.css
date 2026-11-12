@@ -893,3 +893,154 @@ label.mini { display: inline-flex; align-items: center; }
 .photo-confirmer div { display: flex; flex-wrap: wrap; gap: 8px; }
 .photo-confirmer .mini { min-height: 40px; }
 .photo-ajout.confirmation .bouton-photo, .photo-ajout.confirmation > .infos { display: none; }
+
+/* ================= v17 : XP, niveaux de dresseur et camps =================
+   Accent du camp : jaune PokeVibes sans camp, bleu pour la Ligue Pokémon, rouge pour la Team Rocket. */
+:root {
+  --ligue: #2E5FD0; --sur-ligue: #FFFFFF;
+  --rocket: #C42F38; --sur-rocket: #FFFFFF;
+  --camp: var(--score); --sur-camp: var(--sur-score);
+}
+:root[data-theme="sombre"] { --ligue: #7FA4FF; --sur-ligue: #0E1C3D; --rocket: #FF7C83; --sur-rocket: #3A0A0E; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="clair"]) { --ligue: #7FA4FF; --sur-ligue: #0E1C3D; --rocket: #FF7C83; --sur-rocket: #3A0A0E; }
+}
+:root[data-camp="ligue"], .camp-ligue { --camp: var(--ligue); --sur-camp: var(--sur-ligue); }
+:root[data-camp="rocket"], .camp-rocket { --camp: var(--rocket); --sur-camp: var(--sur-rocket); }
+.membre:not(.camp-ligue):not(.camp-rocket) { --camp: var(--score); --sur-camp: var(--sur-score); }
+
+/* En-tête : pastille de niveau + fine barre d'XP, à côté de l'avatar */
+.profil { width: auto; height: 44px; display: flex; align-items: center; gap: 8px; border-radius: 99px; background: none; color: var(--encre); }
+#initiale { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--badge); color: var(--score); font: 700 1rem var(--titre); }
+.profil-texte { order: -1; display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
+.profil-niveau { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.niveau-pastille {
+  display: inline-block; padding: 4px 7px; border-radius: 99px; white-space: nowrap;
+  background: var(--camp); color: var(--sur-camp); font: 700 .72rem/1 var(--titre); font-variant-numeric: tabular-nums;
+}
+.xp-fine { display: block; width: 40px; height: 4px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.xp-fine span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--camp); transition: width .7s cubic-bezier(.16, 1, .3, 1); }
+@media (min-width: 900px) {
+  .profil { padding: 2px 12px 2px 2px; gap: 10px; }
+  .profil-texte { order: 0; align-items: flex-start; gap: 3px; }
+  .profil-niveau { flex-direction: row; align-items: center; gap: 6px; }
+  .xp-fine { width: 56px; }
+}
+
+/* « +10 XP » qui monte et s'efface */
+.gain-xp {
+  position: fixed; z-index: 40; transform: translate(-50%, 0); pointer-events: none; white-space: nowrap;
+  padding: 3px 10px; border-radius: 99px; background: var(--score); color: var(--sur-score);
+  font: 700 .95rem var(--titre); font-variant-numeric: tabular-nums; box-shadow: 2px 2px 0 var(--encre);
+}
+
+/* Page profil : niveau, titre, camp, barre d'XP */
+.jeu-profil { margin: 8px 0; padding: 18px; border-radius: 18px; background: var(--pochette); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--camp) 60%, transparent); }
+#vue-badges[data-camp="ligue"] { --camp: var(--ligue); --sur-camp: var(--sur-ligue); }
+#vue-badges[data-camp="rocket"] { --camp: var(--rocket); --sur-camp: var(--sur-rocket); }
+.jeu-tete { display: flex; align-items: center; gap: 16px; }
+.jeu-niveau {
+  width: 78px; height: 78px; flex: none; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: var(--camp); color: var(--sur-camp); box-shadow: 3px 3px 0 var(--encre);
+}
+.jeu-niveau span { font: 600 .66rem var(--titre); text-transform: uppercase; letter-spacing: .08em; }
+.jeu-niveau strong { font: 700 2.3rem/1 var(--titre); font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.jeu-noms { min-width: 0; }
+.jeu-titre { margin: 0; font: 700 1.4rem/1.15 var(--titre); letter-spacing: -.01em; text-wrap: balance; }
+.jeu-camp { margin: 4px 0 0; color: var(--encre-douce); font-size: .9rem; }
+.barre-xp { height: 10px; margin-top: 18px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.barre-xp span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--camp); transition: width .8s cubic-bezier(.16, 1, .3, 1); }
+.jeu-xp { margin: 8px 0 0; font: 500 .95rem var(--titre); font-variant-numeric: tabular-nums; }
+.jeu-xp span { color: var(--encre-douce); }
+.jeu-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; }
+.jeu-actions .mini { min-height: 44px; padding: 0 16px; font-size: .9rem; display: inline-flex; align-items: center; gap: 8px; }
+.camp-note { margin: 0; flex-basis: 100%; }
+.bouton-son[aria-pressed="false"] .onde, .bouton-son[aria-pressed="true"] .barre-muet { display: none; }
+.bouton-son[aria-pressed="true"] { border-color: var(--encre); }
+
+/* Historique des gains */
+.xp-historique { list-style: none; margin: 0; padding: 0; border-radius: var(--rayon); background: var(--pochette); overflow: hidden; }
+.xp-historique li { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: baseline; padding: 10px 14px; }
+.xp-historique li + li { border-top: 1px solid var(--surface); }
+.xp-historique li.vide { display: block; color: var(--encre-douce); }
+.xp-quoi { min-width: 0; overflow-wrap: anywhere; }
+.xp-quand { color: var(--gris); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.xp-pts { font: 700 .9rem var(--titre); color: var(--gain); font-variant-numeric: tabular-nums; }
+
+/* Les 50 niveaux */
+.niveaux { margin: 16px 0 8px; padding: 2px 14px; border-radius: var(--rayon); background: var(--pochette); }
+.niveaux summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font: 700 1rem var(--titre); }
+.niveaux > .infos { margin: 0 0 8px; display: block; }
+.niveaux-liste { list-style: none; margin: 0 0 12px; padding: 0; }
+.niveaux-liste li { display: grid; grid-template-columns: 2.2em 1fr 1fr; gap: 2px 10px; align-items: baseline; padding: 6px; border-top: 1px solid var(--surface); color: var(--gris); font-size: .88rem; }
+.niveaux-liste li > .niv-t:only-of-type { grid-column: 2 / -1; }
+.niveaux-liste li.palier { font-weight: 600; }
+.niveaux-liste li.atteint { color: var(--encre); }
+.niveaux-liste li.actuel { border-radius: 10px; border-top-color: transparent; background: color-mix(in srgb, var(--camp) 22%, transparent); color: var(--encre); font-weight: 700; }
+.niveaux-liste li.actuel + li { border-top-color: transparent; }
+.niv-n { font: 700 .88rem var(--titre); font-variant-numeric: tabular-nums; }
+.niv-t.autre { opacity: .6; }
+
+/* Passage de niveau / nouveau titre */
+.niv-contenu { max-width: 420px; }
+.niv-nombre { display: flex; flex-direction: column; align-items: center; margin: 6px 0 8px; }
+.niv-nombre span { font: 600 .85rem var(--titre); letter-spacing: .1em; text-transform: uppercase; color: var(--encre-douce); }
+.niv-nombre strong { font: 700 8rem/1 var(--titre); letter-spacing: -.05em; font-variant-numeric: tabular-nums; color: var(--encre); text-shadow: 5px 5px 0 var(--camp); }
+.niv-nombre.petit strong { font-size: 3.6rem; text-shadow: 3px 3px 0 var(--camp); }
+.deb-contenu .niv-grand-titre { margin: 4px 0; font: 700 2.8rem/1.05 var(--titre); letter-spacing: -.03em; }
+.niv-sous { margin: 0; font: 600 1.15rem var(--titre); color: var(--encre-douce); }
+.niv-barre { width: min(280px, 100%); height: 12px; margin-top: 24px; border-radius: 99px; background: var(--surface); overflow: hidden; }
+.niv-barre span { display: block; height: 100%; border-radius: inherit; background: var(--camp); transform-origin: left center; }
+.niv-xp { margin: 8px 0 0; font: 600 .95rem var(--titre); font-variant-numeric: tabular-nums; color: var(--encre-douce); }
+.deb-xp { margin: 0 0 10px; padding: 4px 12px; border-radius: 99px; background: var(--score); color: var(--sur-score); font: 700 .95rem var(--titre); box-shadow: 2px 2px 0 var(--encre); }
+
+/* Choisis ton camp */
+.camp-ecran[open] { place-items: start center; overflow-y: auto; }
+.camp-contenu { width: min(760px, 100%); margin: 0 auto; padding-block: 8px 24px; text-align: center; }
+.camp-contenu h2 { margin: 8px 0 6px; font: 700 2rem/1.1 var(--titre); letter-spacing: -.02em; }
+.camp-intro { margin: 0 auto 18px; max-width: 46ch; color: var(--encre-douce); text-wrap: balance; }
+.camp-cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.camp-carte {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px; border: 0; border-radius: 20px;
+  text-align: left; font: inherit; color: var(--encre); cursor: pointer;
+  background: color-mix(in srgb, var(--camp) 10%, var(--pochette)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--camp) 50%, transparent);
+}
+.camp-carte.choisie { box-shadow: inset 0 0 0 3px var(--camp), 0 6px 18px color-mix(in srgb, var(--camp) 30%, transparent); }
+.camp-carte[aria-disabled="true"] { cursor: default; }
+.camp-carte:focus-visible { outline: 3px solid var(--encre); outline-offset: 3px; }
+.camp-embleme { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 30px; line-height: 1; background: var(--camp); box-shadow: 3px 3px 0 var(--encre); }
+.camp-embleme.grand { width: 120px; height: 120px; border-radius: 32px; font-size: 64px; margin-bottom: 18px; box-shadow: 5px 5px 0 var(--encre); }
+.camp-nom { margin-top: 6px; font: 700 1.35rem var(--titre); letter-spacing: -.01em; }
+.camp-actuel { padding: 2px 9px; border-radius: 99px; background: var(--camp); color: var(--sur-camp); font: 600 .75rem var(--titre); }
+.camp-phrase { color: var(--encre-douce); font-size: .9rem; }
+.camp-titres { list-style: none; margin: 8px 0 0; padding: 10px 0 0; width: 100%; display: grid; gap: 4px; border-top: 1px solid color-mix(in srgb, var(--camp) 35%, transparent); }
+.camp-titres li { display: grid; grid-template-columns: 3.4em 1fr; font-size: .92rem; }
+.camp-titres span { font: 600 .8rem var(--titre); color: var(--encre-douce); font-variant-numeric: tabular-nums; }
+.camp-avertissement { display: inline-block; margin: 16px auto 0; padding: 10px 14px; border-radius: 12px; background: var(--score-pale); font-weight: 600; }
+.camp-confirmer { max-width: 500px; margin: 14px auto 0; padding: 14px; border-radius: 16px; background: var(--pochette); }
+.camp-confirmer p { margin: 0 0 10px; font-weight: 600; text-wrap: balance; }
+.camp-confirmer div { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 16px; }
+.camp-confirmer .bouton-principal { margin: 0; width: auto; padding: 0 22px; }
+.camp-confirmer .lien-discret, .camp-plus-tard { min-height: 44px; }
+.camp-contenu > .message { margin: 10px 0 0; }
+.camp-bravo { display: flex; flex-direction: column; align-items: center; padding-top: 10vh; }
+.camp-bravo .bouton-principal { width: min(320px, 100%); }
+
+/* L'Équipage : niveau, titre et camp de chaque membre */
+.membre-niveau { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+.membre-titre { font: 600 .92rem var(--titre); }
+.membre-camp { font-size: .85rem; color: var(--encre-douce); }
+.membre.camp-ligue .membre-initiale, .membre.camp-rocket .membre-initiale { box-shadow: 0 0 0 2px var(--camp); }
+
+/* Code Konami : écran « arcade » (lignes de balayage, pixels, bandeau) */
+.konami { position: fixed; inset: 0; z-index: 50; pointer-events: none; background: repeating-linear-gradient(0deg, rgb(0 0 0 / .07) 0 2px, transparent 2px 4px); }
+.konami i { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; background: var(--c); box-shadow: 0 0 0 2px #1C1C1C; }
+.konami-bandeau {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 16px 28px; border-radius: 6px; background: #1C1C1C; color: #F2C200; box-shadow: 6px 6px 0 #F2C200; white-space: nowrap;
+}
+.konami-bandeau span { font: 600 .78rem var(--titre); letter-spacing: .22em; text-transform: uppercase; color: #A8F0FF; }
+.konami-bandeau strong { font: 700 2rem/1.1 var(--titre); letter-spacing: .06em; text-transform: uppercase; }
+
+@media (prefers-reduced-motion: reduce) { .xp-fine span, .barre-xp span { transition: none; } }
+.camp-contenu h2:focus { outline: none; }

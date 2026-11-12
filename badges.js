@@ -165,6 +165,9 @@ const DESSINS = {
   // Gâteau à une bougie
   "un-an-deja": pieces(`<path d="M30 3c5 5 5 10 0 11c-5-1-5-6 0-11z" fill="${HO}"/>`, `<rect x="26.5" y="13" width="7" height="15" rx="2.5" fill="${CREME}"/>`, `<rect x="7" y="27" width="46" height="28" rx="7" fill="${NUIT}"/>`) +
     `<path d="M7 36V34a7 7 0 0 1 7-7h32a7 7 0 0 1 7 7v2q-5 5-11 0t-12 0t-12 0t-11 0Z" fill="${HO}" ${K}/><path d="M28 17l5-2M28 22l5-2" stroke="${ROUGE}" stroke-width="1.8" stroke-linecap="round"/>${texte(30, 51, "1", 11, HO)}${G("M11 41h3v9h-3z")}`,
+  // Manette : croix directionnelle et deux boutons (code Konami)
+  konami: pieces(`<rect x="3" y="14" width="54" height="34" rx="17" fill="${NUIT}"/>`) +
+    `<path d="M15 24h5v-5h6v5h5v6h-5v5h-6v-5h-5z" fill="${CREME}" ${K}/><circle cx="40" cy="33" r="4.6" fill="${ROUGE}" ${K}/><circle cx="48" cy="25" r="4.6" fill="${HO}" ${K}/>${etoile(30, 9, 5)}${G("M10 20q6-6 16-5q-9 3-13 9z")}`,
 };
 
 const jours = (n) => n * 864e5;
@@ -211,6 +214,7 @@ export const BADGES = [
   { id: "leve-tot", nom: "Lève-tôt", famille: "Secrets", rarete: "secret", secret: true, condition: "Ouvrir PokeVibes entre 5 h et 7 h du matin.", mesure: (d) => (d.heures.some((h) => h >= 5 && h < 7) ? 1 : 0), cible: 1 },
   { id: "fidele", nom: "Fidèle", famille: "Secrets", rarete: "secret", secret: true, condition: "Ouvrir PokeVibes 30 jours différents.", mesure: (d) => d.joursOuverture, cible: 30 },
   { id: "un-an-deja", nom: "Un an déjà", famille: "Secrets", rarete: "secret", secret: true, condition: "Ouvrir PokeVibes un an après son inscription.", mesure: (d) => (d.anciennete >= jours(365) ? 1 : 0), cible: 1 },
+  { id: "konami", nom: "Code secret", famille: "Secrets", rarete: "secret", secret: true, condition: "Taper au clavier le plus célèbre code de triche du jeu vidéo : ↑ ↑ ↓ ↓ ← → ← → B A.", mesure: (d) => d.konami ?? 0, cible: 1 },
 ].map((b) => ({ ...b, dessin: DESSINS[b.id] }));
 
 export const svgBadge = (b, { verrouille = false, label } = {}) =>

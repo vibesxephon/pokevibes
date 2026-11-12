@@ -1,12 +1,13 @@
 /* PokeVibes — comptes : connexion (e-mail + mot de passe, ou lien par e-mail), création de compte sur invitation,
    mot de passe du profil, puis chargement de l'appli. */
-import { $ } from "./commun.js?v=16";
-import { etat, sb } from "./etat.js?v=16";
-import { entreeApp, entreeConnexion, animer } from "./animations.js?v=16";
-import { chargerCollection } from "./collection.js?v=16";
-import { chargerJournal, verifierBadges } from "./badges-ui.js?v=16";
-import { chargerSuivi } from "./wishlist.js?v=16";
-import { messageErreur, verifierConnexion, verifierInscription, verifierEmail, verifierMotDePasse } from "./comptes.js?v=16";
+import { $ } from "./commun.js?v=17";
+import { etat, sb } from "./etat.js?v=17";
+import { entreeApp, entreeConnexion, animer } from "./animations.js?v=17";
+import { chargerCollection } from "./collection.js?v=17";
+import { chargerJournal, verifierBadges } from "./badges-ui.js?v=17";
+import { chargerSuivi } from "./wishlist.js?v=17";
+import { chargerProfil, connexionDuJour, proposerCampSiBesoin, rattraperBadges } from "./xp.js?v=17";
+import { messageErreur, verifierConnexion, verifierInscription, verifierEmail, verifierMotDePasse } from "./comptes.js?v=17";
 
 export let charge = false;
 
@@ -14,7 +15,7 @@ export async function afficher(session) {
   const connexionCachee = $("#ecran-connexion").hidden;
   $("#ecran-connexion").hidden = !!session;
   $("#app").hidden = !session;
-  if (!session) { if (connexionCachee) entreeConnexion(); charge = false; etat.moi = null; return; }
+  if (!session) { if (connexionCachee) entreeConnexion(); charge = false; etat.moi = null; etat.profil = null; return; }
   if (charge) return;
   charge = true;
   entreeApp();
@@ -29,8 +30,12 @@ export async function afficher(session) {
   $("#compte-titre").textContent = moi?.pseudo ?? "Mon compte";
   $("#compte-email").textContent = etat.email;
   $("#mdp-identifiant").value = etat.email;
-  await Promise.all([chargerCollection(), chargerJournal(), chargerSuivi()]);
+  await Promise.all([chargerCollection(), chargerJournal(), chargerSuivi(), chargerProfil()]);
+  connexionDuJour();
+  // Premier lancement de la v17 : les badges déjà obtenus rapportent leur XP (sans animation, un seul message)
+  await rattraperBadges();
   verifierBadges();
+  proposerCampSiBesoin();
 }
 
 /* ---------- Petits outils de formulaire ---------- */

@@ -2,17 +2,17 @@
    la recherche, la Wishlist) : grande image, prix Cardmarket FR, Favori / Alerte / Retirer, gain-perte, min, max,
    et l'historique des prix sur 7 j / 30 j / 90 j / tout.
    Fenêtre sur iPhone, fenêtre centrée sur tablette et petit PC, panneau à droite de la liste dès 1200 px. */
-import { $, esc, euro, GRAND_ECRAN, pct, dateLongue } from "./commun.js?v=16";
-import { etat, sb } from "./etat.js?v=16";
-import { etiquetteTendance, graphique } from "./prix.js?v=16";
-import { PERIODES, historiqueValide, pointsSurPeriode, periodeParDefaut, extremes, gainPerte, alertesDeLaCarte } from "./suivi.js?v=16";
-import { entreeFiche, animer, dessinerCourbe } from "./animations.js?v=16";
-import { chargerCollection } from "./collection.js?v=16";
-import { depuisProduit, completerCarte, possession } from "./cartes.js?v=16";
-import { estFavori, basculerFavori } from "./wishlist.js?v=16";
-import { ouvrirAlerte, htmlAlertes, actionAlerte } from "./alertes.js?v=16";
-import { message, verifierBadges } from "./badges-ui.js?v=16";
-import { preparerPhoto, envoyerPhoto } from "./photo.js?v=16";
+import { $, esc, euro, GRAND_ECRAN, pct, dateLongue } from "./commun.js?v=17";
+import { etat, sb } from "./etat.js?v=17";
+import { etiquetteTendance, graphique } from "./prix.js?v=17";
+import { PERIODES, historiqueValide, pointsSurPeriode, periodeParDefaut, extremes, gainPerte, alertesDeLaCarte } from "./suivi.js?v=17";
+import { entreeFiche, animer, dessinerCourbe } from "./animations.js?v=17";
+import { chargerCollection } from "./collection.js?v=17";
+import { depuisProduit, completerCarte, possession } from "./cartes.js?v=17";
+import { estFavori, basculerFavori } from "./wishlist.js?v=17";
+import { ouvrirAlerte, htmlAlertes, actionAlerte } from "./alertes.js?v=17";
+import { message, verifierBadges } from "./badges-ui.js?v=17";
+import { preparerPhoto, envoyerPhoto } from "./photo.js?v=17";
 
 let carte = null, points = [], periode = "30", tourFiche = 0;
 const SOURCES = { airtable: "relevé Airtable", api_fr: "Cardmarket FR (automatique)", manuel: "saisie manuelle", catalogue: "Cardmarket FR (relevé de l'extension)", collection: "Cardmarket FR (automatique)" };

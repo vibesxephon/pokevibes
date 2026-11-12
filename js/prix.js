@@ -1,5 +1,5 @@
 /* PokeVibes — prix, valeur, plus-value et tendance 30 jours (calculs purs, testés dans tests/prix.test.js). */
-import { euro } from "./format.js?v=16";
+import { euro } from "./format.js?v=17";
 
 // Un même produit acheté à des prix différents (ex. 3 ETB 30 Ans) = une seule pochette
 export function fusionner(lignes) {
